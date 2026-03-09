@@ -13,13 +13,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::ensureVectorExtensionExists();
+        $supportsNativeVectors = Schema::getConnection()->getDriverName() !== 'sqlite';
 
-        Schema::create('memories', function (Blueprint $table) {
+        if ($supportsNativeVectors) {
+            Schema::ensureVectorExtensionExists();
+        }
+
+        Schema::create('memories', function (Blueprint $table) use ($supportsNativeVectors) {
             $table->id();
             $table->string('user_id')->nullable()->index();
             $table->text('content');
-            $table->vector('embedding', dimensions: config('memory.dimensions'))->index();
+
+            if (! $supportsNativeVectors) {
+                $table->json('embedding');
+            } else {
+                $table->vector('embedding', dimensions: config('memory.dimensions'))->index();
+            }
+
             $table->timestamps();
 
             $table->index(['user_id', 'created_at']);

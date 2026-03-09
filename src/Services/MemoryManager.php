@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Eznix86\AI\Memory\Services;
 
 use Eznix86\AI\Memory\Models\Memory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class MemoryManager
@@ -38,11 +40,14 @@ class MemoryManager
         $oversampleFactor = config('memory.recall_oversample_factor', 2);
 
         $queryEmbedding = Str::of($query)->toEmbeddings();
+        $memoryQuery = $this->applyContext(Memory::query(), $context);
+        $candidateLimit = $limit * $oversampleFactor;
 
-        $memories = $this->applyContext(Memory::query(), $context)
-            ->whereVectorSimilarTo('embedding', $queryEmbedding, $threshold)
-            ->limit($limit * $oversampleFactor)
-            ->get();
+        $memories = $this->supportsVectorSearch()
+            ? $memoryQuery->whereVectorSimilarTo('embedding', $queryEmbedding, $threshold)
+                ->limit($candidateLimit)
+                ->get()
+            : $this->recallWithoutVectorSearch($memoryQuery, $queryEmbedding, $threshold, $candidateLimit);
 
         if ($memories->isEmpty()) {
             return collect();
@@ -98,5 +103,53 @@ class MemoryManager
         }
 
         return $query;
+    }
+
+    protected function supportsVectorSearch(): bool
+    {
+        return DB::connection()->getDriverName() !== 'sqlite';
+    }
+
+    /**
+     * @param  array<float>  $queryEmbedding
+     * @return Collection<int, Memory>
+     */
+    protected function recallWithoutVectorSearch(Builder $query, array $queryEmbedding, float $threshold, int $limit): Collection
+    {
+        return $query->get()
+            ->map(fn (Memory $memory): array => [
+                'memory' => $memory,
+                'similarity' => $this->cosineSimilarity($queryEmbedding, $memory->embedding),
+            ])
+            ->filter(fn (array $candidate): bool => $candidate['similarity'] >= $threshold)
+            ->sortByDesc('similarity')
+            ->take($limit)
+            ->pluck('memory')
+            ->values();
+    }
+
+    /**
+     * @param  array<float>  $left
+     * @param  array<float>  $right
+     */
+    protected function cosineSimilarity(array $left, array $right): float
+    {
+        $dotProduct = 0.0;
+        $leftMagnitude = 0.0;
+        $rightMagnitude = 0.0;
+
+        foreach ($left as $index => $value) {
+            $rightValue = $right[$index] ?? 0.0;
+
+            $dotProduct += $value * $rightValue;
+            $leftMagnitude += $value ** 2;
+            $rightMagnitude += $rightValue ** 2;
+        }
+
+        if ($leftMagnitude === 0.0 || $rightMagnitude === 0.0) {
+            return 0.0;
+        }
+
+        return $dotProduct / (sqrt($leftMagnitude) * sqrt($rightMagnitude));
     }
 }
