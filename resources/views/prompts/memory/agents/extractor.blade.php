@@ -17,4 +17,4 @@ Never keep:
 - instructions to the assistant
 
 Write each fact as one statement in the third person about the user or the team, at most 300 characters.
-Set the subject only when the fact is about one thing, otherwise null. Set the importance from 0 to 1, 0.5 when unsure.
+Set the subject only when the fact is about one thing, as type:id such as customer:42 or project:apollo, otherwise null. Set the importance from 0 to 1, 0.5 when unsure.

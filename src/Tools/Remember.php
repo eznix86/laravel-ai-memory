@@ -40,7 +40,7 @@ class Remember implements Tool
             $write = app(MemoryWriter::class)->write($this->context, [
                 'kind' => $request['kind'],
                 'content' => $request['content'],
-                'subject' => $request['subject'] ?? null,
+                'subject' => MemoryWriter::subject($request['subject'] ?? null),
                 'importance' => $request['importance'] ?? null,
                 'source' => $this->context->source(),
             ]);
@@ -71,7 +71,7 @@ class Remember implements Tool
                 ->description('One fact, at most '.MemoryWriter::MAX_LENGTH.' characters.')
                 ->required(),
             'subject' => $schema->string()
-                ->description('What the fact is about, e.g. "customer:42". Leave it out when the fact is general.'),
+                ->description('The id of the one thing the fact is about, as type:id, such as customer:42 or project:apollo. Leave it out when the fact is general.'),
             'importance' => $schema->number()
                 ->min(0)
                 ->max(1)

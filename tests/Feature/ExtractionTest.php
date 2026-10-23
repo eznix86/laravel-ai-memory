@@ -76,3 +76,13 @@ test('extracted facts that break the rules are dropped, and only three are kept'
 
     expect(AgentMemory::count())->toBe(0);
 });
+
+test('extracted free-form subjects are dropped', function (): void {
+    MemoryExtractor::fake([['facts' => [
+        ['kind' => 'process', 'content' => 'The team deploys on Fridays.', 'subject' => 'deployment schedule', 'importance' => 0.5],
+    ]]]);
+
+    ExtractMemories::dispatchSync(workspace(), null, null, 'We deploy on Friday.', 'Noted.');
+
+    expect(AgentMemory::sole()->subject)->toBeNull();
+});

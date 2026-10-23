@@ -126,3 +126,39 @@ test('a full context archives its weakest memories before adding, but keeps the 
         ->and($strong->fresh()->archived_at)->toBeNull()
         ->and(AgentMemory::forContext($context)->live()->count())->toBe(3);
 });
+
+test('free-form subjects from the model are dropped, so the same fact still meets its duplicate', function (): void {
+    $context = new MemoryContext(workspace());
+    $tool = new Remember($context);
+
+    $tool->handle(new Request(['kind' => 'process', 'content' => 'Our team deploys only on Tuesdays.', 'subject' => 'team deployment']));
+
+    $old = AgentMemory::sole();
+    MemoryDecider::fake([['decision' => 'update', 'replace_id' => $old->id]]);
+
+    $tool->handle(new Request(['kind' => 'process', 'content' => 'Our team deploys only on Thursdays.', 'subject' => 'deployment schedule']));
+
+    expect($old->subject)->toBeNull()
+        ->and($old->fresh()->superseded_by)->not->toBeNull();
+});
+
+test('a subject written as type:id is kept', function (): void {
+    $context = new MemoryContext(workspace());
+
+    (new Remember($context))->handle(new Request(['kind' => 'customer_note', 'content' => 'Customer 42 pays late.', 'subject' => 'customer:42']));
+
+    expect(AgentMemory::sole()->subject)->toBe('customer:42');
+});
+
+test('the deciders use the configured timeout', function (): void {
+    config(['memory.timeout' => 300]);
+    $context = new MemoryContext(workspace());
+    memory($context, 'The team deploys only on Tuesdays.', MemoryKind::Process);
+
+    remember($context, 'The team deploys only on Thursdays.');
+    MemoryDecider::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->timeout === 300);
+
+    config(['memory.decider' => 'classification']);
+    remember($context, 'The team deploys only on Mondays.');
+    Classification::assertClassified(fn ($prompt): bool => $prompt->timeout === 300);
+});

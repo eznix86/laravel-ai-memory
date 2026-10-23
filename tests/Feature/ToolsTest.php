@@ -13,14 +13,14 @@ use Laravel\Ai\Tools\Request;
 test('Remember stores the fact with the conversation as source', function (): void {
     $context = new MemoryContext(workspace(), user(), conversationId: 'conv-1');
 
-    $result = (new Remember($context))->handle(new Request(['kind' => 'lesson', 'content' => 'Shipping to Geneva takes two days.', 'subject' => 'shipping', 'importance' => 0.8]));
+    $result = (new Remember($context))->handle(new Request(['kind' => 'lesson', 'content' => 'Shipping to Geneva takes two days.', 'subject' => 'carrier:dhl', 'importance' => 0.8]));
 
     $memory = AgentMemory::sole();
 
     expect($result)->toBe("Remembered as #{$memory->id}.")
         ->and($memory)
         ->source->toBe('conversation:conv-1')
-        ->subject->toBe('shipping')
+        ->subject->toBe('carrier:dhl')
         ->importance->toBe(0.8)
         ->creator_id->toBeNull();
 });

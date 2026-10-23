@@ -17,6 +17,6 @@ trait AsksMemoryModel
      */
     public function ask(string $prompt): array
     {
-        return $this->prompt($prompt, provider: config('memory.provider'), model: config('memory.model'))->structured;
+        return $this->prompt($prompt, provider: config('memory.provider'), model: config('memory.model'), timeout: config('memory.timeout'))->structured;
     }
 }

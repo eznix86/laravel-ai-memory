@@ -23,6 +23,8 @@ class MemoryWriter
 {
     public const int MAX_LENGTH = 300;
 
+    public const string SUBJECT_PATTERN = '/^[a-z][a-z0-9_]*:[A-Za-z0-9_.-]+$/';
+
     /**
      * Patterns of facts phrased as instructions to the agent.
      *
@@ -172,7 +174,7 @@ class MemoryWriter
         $validator = Validator::make($fact, [
             'kind' => ['required', Rule::enum(MemoryKind::class)],
             'content' => ['required', 'string', 'max:'.self::MAX_LENGTH],
-            'subject' => ['nullable', 'string', 'max:255'],
+            'subject' => ['nullable', 'string', 'max:255', 'regex:'.self::SUBJECT_PATTERN],
             'importance' => ['nullable', 'numeric', 'between:0,1'],
             'source' => ['required', 'string'],
         ]);
@@ -184,6 +186,14 @@ class MemoryWriter
         $this->guardContent($fact['content']);
 
         return $fact;
+    }
+
+    /**
+     * Keep a subject only when it is a stable id such as "customer:42", so a model's free-form label never splits duplicates apart.
+     */
+    public static function subject(mixed $subject): ?string
+    {
+        return is_string($subject) && preg_match(self::SUBJECT_PATTERN, $subject) ? $subject : null;
     }
 
     /**

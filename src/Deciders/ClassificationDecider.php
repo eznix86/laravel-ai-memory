@@ -31,6 +31,7 @@ class ClassificationDecider implements DecidesDuplicates
 
         $answer = Classification::of(view('prompts.memory.agents.decider-prompt', ['memory' => $memory, 'candidates' => $candidates])->render())
             ->question('decision', new Choice(trim(view('prompts.memory.classification.decider')->render()), $options))
+            ->timeout(config('memory.timeout'))
             ->classify(config('memory.classification_provider'), config('memory.classification_model'))
             ->answer('decision');
 

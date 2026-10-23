@@ -49,6 +49,8 @@ $context = new MemoryContext(
 );
 ```
 
+A subject is a stable id written as `type:id`, such as `customer:42` or `project:apollo`. Purge and consolidation work by subject. The writer rejects other subjects, and the `Remember` tool and extraction drop them, because a model's free-form labels ("team deployment") would keep duplicates apart.
+
 A memory belongs to the whole tenant, or to one user. Preferences are personal. The other kinds are shared in the tenant.
 
 | Kind | Example |
@@ -176,7 +178,9 @@ When a context holds more than 500 live memories, the weakest ones are archived 
 
 ## Automatic extraction
 
-After every prompt to an agent that implements `HasMemory`, an `ExtractMemories` job is queued with the user message and the reply. A small agent picks out at most 3 facts the user stated or confirmed, and ignores text quoted from emails, documents or customer messages. Each fact goes through the writer, with `extraction` as its source. Turn it off with `MEMORY_EXTRACTION=false`.
+After every prompt to an agent that implements `HasMemory`, an `ExtractMemories` job is queued with the user message and the reply. A small agent picks out at most 3 facts the user stated or confirmed, and ignores text quoted from emails, documents or customer messages. Before a fact reaches the writer, `Grounding` checks that at least half of its words come from the user's own words. Quoted lines (`>`), quoted strings, code blocks and the assistant reply do not count. So a fact the model took from a pasted email or from its own answer is dropped, even when the model ignored its instructions. Each fact that passes goes through the writer, with `extraction` as its source. Turn extraction off with `MEMORY_EXTRACTION=false`.
+
+The extractor, decider and consolidator are small tasks, but very small models do them badly. In our tests with local Ollama models, a 3B model often answered `add` where `update` was right. A 9B model got every duplicate decision right. Set `MEMORY_MODEL` to a model you have tested.
 
 ## Decay
 
@@ -273,6 +277,7 @@ Use `{!! !!}` for memory content in your templates. `{{ }}` escapes quotes as HT
 | `recall_limit` | `MEMORY_RECALL_LIMIT` | `8` | Memories returned by `RecallMemory` |
 | `recall_min_similarity` | `MEMORY_RECALL_MIN_SIMILARITY` | `0.3` | Minimum cosine similarity for `RecallMemory` |
 | `provider`, `model` | `MEMORY_PROVIDER`, `MEMORY_MODEL` | default | Provider and model of the decider, extractor and consolidator agents |
+| `timeout` | `MEMORY_TIMEOUT` | `120` | Seconds the memory agents and the classification decider may take |
 | `decider` | `MEMORY_DECIDER` | `agent` | `agent` or `classification` |
 | `classification_provider`, `classification_model` | `MEMORY_CLASSIFICATION_PROVIDER`, `MEMORY_CLASSIFICATION_MODEL` | default | Provider and model of the classification decider |
 | `queue` | `MEMORY_QUEUE` | default | Queue of the extraction and consolidation jobs |

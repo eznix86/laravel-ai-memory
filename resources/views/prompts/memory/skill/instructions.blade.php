@@ -20,7 +20,7 @@ You keep durable facts across conversations with the Remember, Forget and Recall
   - customer_note: a fact about one customer. Set the subject, for example customer:42.
   - lesson: something learned from a mistake or a success.
   - context: a temporary situation, such as a release freeze this week.
-- Set the subject only when the fact is about one thing, such as a customer or a project.
+- Set the subject only when the fact is about one thing, as type:id such as customer:42 or project:apollo.
 - Set the importance from 0 to 1. Use 0.8 or more for facts that matter in most conversations, and 0.3 for small details. The default is 0.5.
 
 ## When a fact changes

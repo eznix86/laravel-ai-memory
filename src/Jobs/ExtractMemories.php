@@ -54,7 +54,7 @@ class ExtractMemories implements ShouldQueue
                 $writer->write($context, [
                     'kind' => $fact['kind'] ?? null,
                     'content' => $fact['content'] ?? null,
-                    'subject' => $fact['subject'] ?? null,
+                    'subject' => MemoryWriter::subject($fact['subject'] ?? null),
                     'importance' => $fact['importance'] ?? null,
                     'source' => 'extraction',
                     'personal' => null,

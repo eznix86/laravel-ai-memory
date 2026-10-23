@@ -22,7 +22,7 @@ function write(array $fact, ?MemoryContext $context = null): AgentMemory
 test('a fact is stored in the tenant with its source and an embedding', function (): void {
     $workspace = workspace();
 
-    $memory = write(['content' => 'Invoices are sent on the first Monday.', 'kind' => MemoryKind::Process, 'subject' => 'billing'], new MemoryContext($workspace));
+    $memory = write(['content' => 'Invoices are sent on the first Monday.', 'kind' => MemoryKind::Process, 'subject' => 'team:billing'], new MemoryContext($workspace));
 
     expect($memory->fresh())
         ->tenant->is($workspace)->toBeTrue()
@@ -32,7 +32,7 @@ test('a fact is stored in the tenant with its source and an embedding', function
         ->importance->toBe(0.5)
         ->embedding->toHaveCount(config('memory.dimensions'));
 
-    Embeddings::assertGenerated(fn (EmbeddingsPrompt $prompt): bool => $prompt->inputs === ['billing · process: Invoices are sent on the first Monday.']);
+    Embeddings::assertGenerated(fn (EmbeddingsPrompt $prompt): bool => $prompt->inputs === ['team:billing · process: Invoices are sent on the first Monday.']);
 });
 
 test('a preference belongs to the user and other kinds to the whole tenant', function (): void {
@@ -64,6 +64,7 @@ test('the writer rejects invalid facts', function (array $fact, string $message)
     'content over 300 characters' => [['content' => str_repeat('a', 301)], 'must not be greater than 300'],
     'unknown kind' => [['kind' => 'gossip', 'content' => 'Bob likes tea.'], 'kind is invalid'],
     'importance above 1' => [['content' => 'Bob likes tea.', 'importance' => 2], 'importance field must be between'],
+    'subject that is not an id' => [['content' => 'Bob likes tea.', 'subject' => 'team deployment'], 'subject field format is invalid'],
 ]);
 
 test('the writer rejects secrets', function (string $content, string $secret): void {
