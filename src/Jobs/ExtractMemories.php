@@ -7,6 +7,7 @@ namespace Eznix86\AI\Memory\Jobs;
 use Eznix86\AI\Memory\Agents\MemoryExtractor;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
 use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\Services\Grounding;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -35,7 +36,7 @@ class ExtractMemories implements ShouldQueue
     /**
      * Store the facts the user stated or confirmed in the turn.
      */
-    public function handle(MemoryWriter $writer): void
+    public function handle(MemoryWriter $writer, Grounding $grounding): void
     {
         $context = new MemoryContext($this->tenant, $this->user, $this->conversationId);
 
@@ -45,6 +46,10 @@ class ExtractMemories implements ShouldQueue
         ])->render());
 
         foreach (array_slice($answer['facts'] ?? [], 0, MemoryExtractor::MAX_FACTS) as $fact) {
+            if (! $grounding->isGrounded((string) ($fact['content'] ?? ''), $this->message)) {
+                continue;
+            }
+
             try {
                 $writer->write($context, [
                     'kind' => $fact['kind'] ?? null,
