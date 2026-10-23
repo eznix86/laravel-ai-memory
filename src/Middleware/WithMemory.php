@@ -5,27 +5,29 @@ declare(strict_types=1);
 namespace Eznix86\AI\Memory\Middleware;
 
 use Closure;
-use Eznix86\AI\Memory\Services\MemoryManager;
+use Eznix86\AI\Memory\Enums\MemoryKind;
+use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\Models\AgentMemory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Laravel\Ai\Gateway\StepResult;
-use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\PendingStep;
 
 class WithMemory
 {
     /**
-     * The recalled memories, keyed by invocation id.
+     * The rendered memories, keyed by invocation id.
      *
      * @var array<string, string|null>
      */
-    protected array $recalled = [];
+    protected array $loaded = [];
 
     /**
      * Create a new memory middleware instance.
-     *
-     * @param  array<string, mixed>  $context
      */
     public function __construct(
-        protected array $context = [],
+        protected MemoryContext $context,
         protected ?int $limit = null,
     ) {}
 
@@ -34,46 +36,76 @@ class WithMemory
      */
     public function handle(PendingStep $step, Closure $next): StepResult
     {
-        if ($this->context === []) {
-            return $next($step);
-        }
-
         $key = (string) $step->invocationId;
 
-        if (! array_key_exists($key, $this->recalled)) {
-            $this->recalled[$key] = $this->recall($step);
+        if (! array_key_exists($key, $this->loaded)) {
+            $this->loaded[$key] = $this->render($this->load());
         }
 
-        $memories = $this->recalled[$key];
-
-        if ($memories === null) {
+        if ($this->loaded[$key] === null) {
             return $next($step);
         }
 
-        return $next($step->withInstructions(trim($step->instructions."\n\n".$memories)));
+        return $next($step->withInstructions(trim($step->instructions."\n\n".$this->loaded[$key])));
     }
 
     /**
-     * Recall the memories relevant to the latest user message.
+     * Load the strongest live memories, always including the pinned ones, and mark them as used.
+     *
+     * @return Collection<int, AgentMemory>
      */
-    protected function recall(PendingStep $step): ?string
+    protected function load(): Collection
     {
-        $message = collect($step->messages)->last(fn ($message): bool => $message instanceof UserMessage);
+        $limit = $this->limit ?? config('memory.loaded_limit');
 
-        if (blank($message?->content)) {
-            return null;
+        $pinned = $this->live()->where(fn (Builder $query) => $this->pinned($query))->strongestFirst()->limit($limit)->pluck('id');
+
+        $others = $this->live()->whereKeyNot($pinned)->strongestFirst()->limit($limit - $pinned->count())->pluck('id');
+
+        $memories = AgentMemory::query()->whereKey($pinned->merge($others))->strongestFirst()->get();
+
+        if ($memories->isNotEmpty()) {
+            AgentMemory::query()->whereKey($memories->modelKeys())->toBase()->increment('recall_count', 1, ['last_used_at' => now()]);
         }
 
-        $memories = app(MemoryManager::class)->recall(
-            $message->content,
-            $this->context,
-            $this->limit ?? config('memory.middleware_recall_limit', 5),
-        );
+        return $memories;
+    }
 
+    /**
+     * Start a query for the live memories in the context.
+     *
+     * @return Builder<AgentMemory>
+     */
+    protected function live(): Builder
+    {
+        return AgentMemory::query()->forContext($this->context)->live();
+    }
+
+    /**
+     * Limit the query to the user's preferences and the memories about the context subjects.
+     *
+     * @param  Builder<AgentMemory>  $query
+     */
+    protected function pinned(Builder $query): void
+    {
+        $query->whereIn('subject', $this->context->subjects);
+
+        if ($this->context->user instanceof Model) {
+            $query->orWhere(fn (Builder $query) => $query->where('kind', MemoryKind::Preference)->whereBelongsToUser($this->context->user));
+        }
+    }
+
+    /**
+     * Render the memories for the agent instructions.
+     *
+     * @param  Collection<int, AgentMemory>  $memories
+     */
+    protected function render(Collection $memories): ?string
+    {
         if ($memories->isEmpty()) {
             return null;
         }
 
-        return "Relevant memories from previous conversations:\n".$memories->map(fn ($memory): string => "- {$memory->content}")->implode("\n");
+        return trim(view('prompts.memory.instructions', ['memories' => $memories])->render());
     }
 }

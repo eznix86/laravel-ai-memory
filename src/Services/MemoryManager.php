@@ -4,99 +4,101 @@ declare(strict_types=1);
 
 namespace Eznix86\AI\Memory\Services;
 
-use Eznix86\AI\Memory\Models\Memory;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
+use Eznix86\AI\Memory\Enums\MemoryKind;
+use Eznix86\AI\Memory\Exceptions\RejectedMemory;
+use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\Models\AgentMemory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 class MemoryManager
 {
     /**
-     * Store a memory with automatic embedding generation.
-     *
-     * @param  array<string, mixed>  $context
+     * Create a new memory manager instance.
      */
-    public function store(string $content, array $context = []): Memory
-    {
-        $embedding = Str::of($content)->toEmbeddings();
-
-        return Memory::create(array_merge($context, [
-            'content' => $content,
-            'embedding' => $embedding,
-        ]));
-    }
+    public function __construct(
+        protected MemoryWriter $writer,
+    ) {}
 
     /**
-     * Recall memories using vector similarity and reranking.
+     * List the live memories in the given context.
      *
-     * @param  array<string, mixed>  $context
-     * @return Collection<int, Memory>
+     * @return Collection<int, AgentMemory>
      */
-    public function recall(string $query, array $context = [], ?int $limit = null): Collection
+    public function list(MemoryContext $context, ?MemoryKind $kind = null, ?string $subject = null, ?string $search = null): Collection
     {
-        $limit ??= config('memory.recall_limit', 10);
-        $threshold = config('memory.similarity_threshold', 0.5);
-        $oversampleFactor = config('memory.recall_oversample_factor', 2);
-
-        $queryEmbedding = Str::of($query)->toEmbeddings();
-
-        $memories = $this->applyContext(Memory::query(), $context)
-            ->whereVectorSimilarTo('embedding', $queryEmbedding, $threshold)
-            ->limit($limit * $oversampleFactor)
-            ->get();
-
-        if ($memories->isEmpty()) {
-            return collect();
-        }
-
-        return $memories
-            ->rerank('content', $query)
-            ->take($limit);
-    }
-
-    /**
-     * Get all memories with optional context filtering.
-     *
-     * @param  array<string, mixed>  $context
-     * @return \Illuminate\Database\Eloquent\Collection<int, Memory>
-     */
-    public function all(array $context = [], int $limit = 100): \Illuminate\Database\Eloquent\Collection
-    {
-        return $this->applyContext(Memory::query(), $context)
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
+        return AgentMemory::query()
+            ->forContext($context)
+            ->live()
+            ->when($kind, fn (Builder $query) => $query->where('kind', $kind))
+            ->when($subject, fn (Builder $query) => $query->where('subject', $subject))
+            ->when($search, fn (Builder $query) => $query->whereLike('content', "%{$search}%"))
+            ->strongestFirst()
             ->get();
     }
 
     /**
-     * Delete a specific memory.
+     * Add a fact written by a person.
+     *
+     * @param  array{kind: MemoryKind|string, content: string, subject?: string|null, importance?: float|null, expires_at?: \DateTimeInterface|null, personal?: bool|null}  $fact
+     *
+     * @throws RejectedMemory
      */
-    public function forget(int $memoryId): bool
+    public function add(MemoryContext $context, Model $creator, array $fact): AgentMemory
     {
-        return Memory::find($memoryId)?->delete() ?? false;
+        return $this->writer->write($context, [...$fact, 'source' => 'user', 'creator' => $creator]);
     }
 
     /**
-     * Delete all memories matching the given context.
+     * Correct the content of a memory, which marks it as confirmed by the editor.
      *
-     * @param  array<string, mixed>  $context
+     * @throws RejectedMemory
      */
-    public function forgetAll(array $context = []): int
+    public function edit(AgentMemory $memory, string $content, Model $editor): AgentMemory
     {
-        return (int) $this->applyContext(Memory::query(), $context)->delete();
+        $this->writer->validate(['kind' => $memory->kind, 'content' => $content, 'source' => $memory->source]);
+
+        $memory->content = $content;
+        $memory->creator()->associate($editor);
+        $memory->save();
+
+        return $memory;
     }
 
     /**
-     * Apply context filters to a query builder.
-     *
-     * @param  mixed  $query
-     * @param  array<string, mixed>  $context
+     * Delete a memory for good.
      */
-    protected function applyContext($query, array $context): mixed
+    public function delete(AgentMemory $memory): void
     {
-        foreach ($context as $field => $value) {
-            $query->where($field, $value);
-        }
+        $memory->delete();
+    }
 
-        return $query;
+    /**
+     * Export every memory that belongs to the user, including archived and superseded ones.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function export(Model $user): array
+    {
+        return AgentMemory::query()
+            ->whereBelongsToUser($user)
+            ->oldest('id')
+            ->get()
+            ->map(fn (AgentMemory $memory): array => $memory->makeHidden('embedding')->toArray())
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Delete every memory about a subject in the tenant, whatever its state.
+     */
+    public function purge(Model $tenant, string $subject): int
+    {
+        return AgentMemory::query()
+            ->where('tenant_type', $tenant->getMorphClass())
+            ->where('tenant_id', (string) $tenant->getKey())
+            ->where('subject', $subject)
+            ->delete();
     }
 }

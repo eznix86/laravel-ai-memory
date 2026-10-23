@@ -1,0 +1,215 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Eznix86\AI\Memory\Services;
+
+use Eznix86\AI\Memory\Enums\MemoryKind;
+use Eznix86\AI\Memory\Exceptions\RejectedMemory;
+use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\Models\AgentMemory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+
+class MemoryWriter
+{
+    public const int MAX_LENGTH = 300;
+
+    /**
+     * Patterns of facts phrased as instructions to the agent.
+     *
+     * @var list<string>
+     */
+    protected const array INSTRUCTION_PATTERNS = [
+        '/^\s*(always|never|ignore|disregard|forget|do not|don\'t|you must|you should|you are to|from now on)\b/i',
+        '/\b(ignore|disregard|override)\s+(all\s+|any\s+)?(previous|prior|above|earlier|your)\s+(instructions|rules|guidelines)\b/i',
+        '/\b(system prompt|new instructions)\b/i',
+    ];
+
+    /**
+     * Patterns of API keys, tokens and private keys.
+     *
+     * @var list<string>
+     */
+    protected const array API_KEY_PATTERNS = [
+        '/\b(sk|pk|rk)[-_][A-Za-z0-9_-]{16,}/',
+        '/\bAKIA[0-9A-Z]{16}\b/',
+        '/\bgh[pousr]_[A-Za-z0-9]{30,}/',
+        '/\bxox[abprs]-[A-Za-z0-9-]{10,}/',
+        '/\bAIza[0-9A-Za-z_-]{35}\b/',
+        '/-----BEGIN [A-Z ]*PRIVATE KEY-----/',
+        '/\b(api[_ -]?key|secret|access[_ -]?token|bearer)\b\s*(is|:|=)\s*\S{8,}/i',
+    ];
+
+    /**
+     * Store a fact in the given context.
+     *
+     * @param  array{kind: MemoryKind|string, content: string, subject?: string|null, importance?: float|null, expires_at?: \DateTimeInterface|null, source: string, creator?: Model|null, personal?: bool|null}  $fact
+     *
+     * @throws RejectedMemory
+     */
+    public function write(MemoryContext $context, array $fact): AgentMemory
+    {
+        $fact = $this->validate($fact);
+
+        $kind = MemoryKind::from($fact['kind']);
+
+        $personal = $fact['personal'] ?? $kind->isPersonal();
+
+        if ($personal && ! $context->user instanceof Model) {
+            throw RejectedMemory::invalid('a personal memory needs a user in the context.');
+        }
+
+        $memory = new AgentMemory([
+            'kind' => $kind,
+            'subject' => $fact['subject'] ?? null,
+            'content' => $fact['content'],
+            'importance' => $fact['importance'] ?? 0.5,
+            'expires_at' => $fact['expires_at'] ?? null,
+            'source' => $fact['source'],
+        ]);
+
+        $memory->tenant()->associate($context->tenant);
+
+        if ($personal) {
+            $memory->user()->associate($context->user);
+        }
+
+        if (($fact['creator'] ?? null) instanceof Model) {
+            $memory->creator()->associate($fact['creator']);
+        }
+
+        $memory->save();
+
+        return $memory;
+    }
+
+    /**
+     * Validate a fact before it is stored.
+     *
+     * @param  array<string, mixed>  $fact
+     * @return array<string, mixed>
+     *
+     * @throws RejectedMemory
+     */
+    public function validate(array $fact): array
+    {
+        if (($fact['kind'] ?? null) instanceof MemoryKind) {
+            $fact['kind'] = $fact['kind']->value;
+        }
+
+        $validator = Validator::make($fact, [
+            'kind' => ['required', Rule::enum(MemoryKind::class)],
+            'content' => ['required', 'string', 'max:'.self::MAX_LENGTH],
+            'subject' => ['nullable', 'string', 'max:255'],
+            'importance' => ['nullable', 'numeric', 'between:0,1'],
+            'source' => ['required', 'string'],
+        ]);
+
+        if ($validator->fails()) {
+            throw RejectedMemory::invalid($validator->errors()->first());
+        }
+
+        $this->guardContent($fact['content']);
+
+        return $fact;
+    }
+
+    /**
+     * Reject content that holds a secret or an instruction.
+     *
+     * @throws RejectedMemory
+     */
+    public function guardContent(string $content): void
+    {
+        foreach (self::INSTRUCTION_PATTERNS as $pattern) {
+            if (preg_match($pattern, $content)) {
+                throw RejectedMemory::instruction();
+            }
+        }
+
+        if ($this->containsCardNumber($content)) {
+            throw RejectedMemory::secret('a card number');
+        }
+
+        if ($this->containsIban($content)) {
+            throw RejectedMemory::secret('an IBAN');
+        }
+
+        foreach (self::API_KEY_PATTERNS as $pattern) {
+            if (preg_match($pattern, $content)) {
+                throw RejectedMemory::secret('an API key or token');
+            }
+        }
+
+        if (preg_match('/\b(password|passwd|pwd|passcode|pin code)\b\s*(is|:|=)\s*\S+/i', $content)) {
+            throw RejectedMemory::secret('a password');
+        }
+    }
+
+    /**
+     * Determine whether the content holds a number that passes the Luhn check.
+     */
+    protected function containsCardNumber(string $content): bool
+    {
+        preg_match_all('/\b\d(?:[ -]?\d){12,18}\b/', $content, $matches);
+
+        foreach ($matches[0] as $match) {
+            if ($this->passesLuhn((string) preg_replace('/\D/', '', $match))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether the digits pass the Luhn check.
+     */
+    protected function passesLuhn(string $digits): bool
+    {
+        $sum = 0;
+
+        foreach (array_reverse(str_split($digits)) as $position => $digit) {
+            $value = (int) $digit * ($position % 2 === 1 ? 2 : 1);
+            $sum += $value > 9 ? $value - 9 : $value;
+        }
+
+        return $sum % 10 === 0;
+    }
+
+    /**
+     * Determine whether the content holds an IBAN with a valid checksum.
+     */
+    protected function containsIban(string $content): bool
+    {
+        preg_match_all('/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b/', strtoupper($content), $matches);
+
+        foreach ($matches[0] as $match) {
+            $iban = str_replace(' ', '', $match);
+            $rearranged = substr($iban, 4).substr($iban, 0, 4);
+            $numeric = (string) preg_replace_callback('/[A-Z]/', fn (array $letter): string => (string) (ord($letter[0]) - 55), $rearranged);
+
+            if ($this->mod97($numeric) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Compute the remainder of a long numeric string divided by 97.
+     */
+    protected function mod97(string $numeric): int
+    {
+        $remainder = 0;
+
+        foreach (str_split($numeric, 7) as $chunk) {
+            $remainder = (int) ($remainder.$chunk) % 97;
+        }
+
+        return $remainder;
+    }
+}

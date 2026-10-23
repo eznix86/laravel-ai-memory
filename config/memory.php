@@ -6,6 +6,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Table Name
+    |--------------------------------------------------------------------------
+    |
+    | The database table that holds the agent memories. Change it before you
+    | run the migration if the default name clashes with your application.
+    |
+    */
+
+    'table' => env('MEMORY_TABLE', 'agent_memories'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Vector Dimensions
     |--------------------------------------------------------------------------
     |
@@ -14,72 +26,48 @@ return [
     | - 1536 (OpenAI text-embedding-3-small, text-embedding-ada-002)
     | - 3072 (OpenAI text-embedding-3-large)
     | - 1024 (Cohere embed-english-v3.0)
+    | - 768 (Ollama nomic-embed-text)
     |
     */
 
-    'dimensions' => env('MEMORY_DIMENSIONS', 1536),
+    'dimensions' => (int) env('MEMORY_DIMENSIONS', 1536),
 
     /*
     |--------------------------------------------------------------------------
-    | Similarity Threshold
+    | Loaded Memory Limit
     |--------------------------------------------------------------------------
     |
-    | The minimum cosine similarity score (0.0 to 1.0) required for a memory
-    | to be considered relevant during recall. Lower values return more results
-    | but may include less relevant memories. Higher values are stricter.
+    | The number of memories the WithMemory middleware adds to the agent
+    | instructions on every prompt, strongest first. The agent reaches the
+    | other memories with the RecallMemory tool.
     |
     */
 
-    'similarity_threshold' => env('MEMORY_SIMILARITY_THRESHOLD', 0.5),
+    'loaded_limit' => (int) env('MEMORY_LOADED_LIMIT', 30),
 
     /*
     |--------------------------------------------------------------------------
-    | Default Recall Limit
+    | Recall Limit
     |--------------------------------------------------------------------------
     |
-    | The default maximum number of memories returned by the recall method.
-    | This can be overridden per-call via the $limit parameter.
+    | The maximum number of memories the RecallMemory tool returns for one
+    | search.
     |
     */
 
-    'recall_limit' => env('MEMORY_RECALL_LIMIT', 10),
+    'recall_limit' => (int) env('MEMORY_RECALL_LIMIT', 8),
 
     /*
     |--------------------------------------------------------------------------
-    | Middleware Recall Limit
+    | Recall Minimum Similarity
     |--------------------------------------------------------------------------
     |
-    | The default number of memories injected into agent prompts by the
-    | InjectMemory middleware. Keep this relatively low to avoid consuming
-    | too much of the context window.
+    | The minimum cosine similarity (0.0 to 1.0) a memory needs to be returned
+    | by the RecallMemory tool. Lower values return more results, but some of
+    | them may not be relevant.
     |
     */
 
-    'middleware_recall_limit' => env('MEMORY_MIDDLEWARE_RECALL_LIMIT', 5),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Recall Oversample Factor
-    |--------------------------------------------------------------------------
-    |
-    | When recalling memories, we first retrieve (limit × factor) candidates
-    | via vector similarity search, then rerank them to return the top N.
-    | Higher values improve reranking quality at the cost of more DB reads.
-    |
-    */
-
-    'recall_oversample_factor' => env('MEMORY_RECALL_OVERSAMPLE_FACTOR', 2),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Table Name
-    |--------------------------------------------------------------------------
-    |
-    | The database table name used to store memories. Change this if you need
-    | to avoid conflicts with existing tables in your application.
-    |
-    */
-
-    'table' => env('MEMORY_TABLE', 'memories'),
+    'recall_min_similarity' => (float) env('MEMORY_RECALL_MIN_SIMILARITY', 0.3),
 
 ];

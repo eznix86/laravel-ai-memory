@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use Eznix86\AI\Memory\Facades\AgentMemory;
+use Eznix86\AI\Memory\Facades\Memories;
 use Eznix86\AI\Memory\MemoryServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Ai\AiServiceProvider;
@@ -12,6 +12,7 @@ use Orchestra\Testbench\TestCase as BaseTestCase;
 use Testcontainers\Container\GenericContainer;
 use Testcontainers\Container\StartedGenericContainer;
 use Testcontainers\Wait\WaitForExec;
+use Tests\Fixtures\AssistantAgent;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -50,6 +51,11 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/database/migrations');
+
+        Memories::fake();
+
+        AssistantAgent::$instructions = [];
     }
 
     protected function getPackageProviders($app): array
@@ -57,13 +63,6 @@ abstract class TestCase extends BaseTestCase
         return [
             AiServiceProvider::class,
             MemoryServiceProvider::class,
-        ];
-    }
-
-    protected function getPackageAliases($app): array
-    {
-        return [
-            'Memory' => AgentMemory::class,
         ];
     }
 

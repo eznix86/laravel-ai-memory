@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tests\Fixtures;
 
 use Closure;
+use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Middleware\WithMemory;
+use Eznix86\AI\Memory\Tools\Forget;
 use Eznix86\AI\Memory\Tools\RecallMemory;
-use Eznix86\AI\Memory\Tools\StoreMemory;
+use Eznix86\AI\Memory\Tools\Remember;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasMiddleware;
 use Laravel\Ai\Contracts\HasTools;
@@ -15,45 +17,39 @@ use Laravel\Ai\PendingStep;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-class MemoryAgent implements Agent, HasMiddleware, HasTools
+class AssistantAgent implements Agent, HasMiddleware, HasTools
 {
     use Promptable;
 
-    public static ?string $instructions = null;
+    /**
+     * @var list<string|null>
+     */
+    public static array $instructions = [];
 
     public function __construct(
-        protected array $context = [],
-        protected int $recallLimit = 10,
+        protected MemoryContext $context,
     ) {}
 
-    /**
-     * Get the instructions that the agent should follow.
-     */
     public function instructions(): Stringable|string
     {
-        return 'You are a helpful assistant with memory capabilities. You can store and recall information from previous conversations.';
+        return 'You are a helpful assistant.';
     }
 
-    /**
-     * Get the tools available to the agent.
-     */
     public function tools(): iterable
     {
         return [
-            (new RecallMemory)->context($this->context)->limit($this->recallLimit),
-            (new StoreMemory)->context($this->context),
+            new Remember($this->context),
+            new Forget($this->context),
+            new RecallMemory($this->context),
         ];
     }
 
-    /**
-     * Get the middleware for the agent.
-     */
     public function middleware(): array
     {
         return [
             new WithMemory($this->context),
             function (PendingStep $step, Closure $next) {
-                static::$instructions = $step->instructions;
+                static::$instructions[] = $step->instructions;
 
                 return $next($step);
             },
