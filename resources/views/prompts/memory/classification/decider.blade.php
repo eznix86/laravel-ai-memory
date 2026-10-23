@@ -1,1 +1,1 @@
-Decide what to do with the new fact, given the stored memories that are close to it. Pick replace only when the new fact changes or contradicts that one memory.
+Decide what to do with the new fact, given the stored memories that are close to it. Pick noop when a memory already says the same thing in other words. Pick replace only when the new fact and that memory cannot both be true. Otherwise pick add.
