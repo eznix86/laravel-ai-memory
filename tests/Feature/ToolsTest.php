@@ -66,7 +66,7 @@ test('RecallMemory returns live memories in the context and marks them as used',
     $memory = memory($context, 'The user lives in Mauritius.');
     memory($context, 'Archived fact.', attributes: ['archived_at' => now()]);
 
-    $result = (new RecallMemory($context))->handle(new Request(['query' => 'home']));
+    $result = (new RecallMemory($context))->handle(new Request(['query' => 'Where does the user live?']));
 
     expect($result)->toBe("#{$memory->id} [lesson] The user lives in Mauritius.")
         ->and($memory->fresh())

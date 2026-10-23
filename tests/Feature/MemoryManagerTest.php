@@ -28,7 +28,7 @@ test('list returns live memories in the context, filtered by kind, subject and t
 test('a fact added by hand records the user as source and creator', function (): void {
     $user = user();
 
-    $memory = Memories::add(new MemoryContext(workspace(), $user), $user, ['kind' => 'process', 'content' => 'Deploys happen on Tuesday.']);
+    $memory = Memories::add(new MemoryContext(workspace(), $user), $user, ['kind' => 'process', 'content' => 'Deploys happen on Tuesday.'])->memory;
 
     expect($memory->source)->toBe('user')
         ->and($memory->creator->is($user))->toBeTrue();
@@ -37,7 +37,7 @@ test('a fact added by hand records the user as source and creator', function ():
 test('a fact added by hand can be personal whatever its kind', function (): void {
     $user = user();
 
-    $memory = Memories::add(new MemoryContext(workspace(), $user), $user, ['kind' => 'lesson', 'content' => 'I learn best from examples.', 'personal' => true]);
+    $memory = Memories::add(new MemoryContext(workspace(), $user), $user, ['kind' => 'lesson', 'content' => 'I learn best from examples.', 'personal' => true])->memory;
 
     expect($memory->user->is($user))->toBeTrue();
 });

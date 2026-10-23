@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace Eznix86\AI\Memory;
 
+use Eznix86\AI\Memory\Console\ConsolidateCommand;
+use Eznix86\AI\Memory\Contracts\DecidesDuplicates;
+use Eznix86\AI\Memory\Deciders\AgentDecider;
+use Eznix86\AI\Memory\Deciders\ClassificationDecider;
+use Eznix86\AI\Memory\Listeners\QueueMemoryExtraction;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Policies\MemoryPolicy;
 use Eznix86\AI\Memory\Services\MemoryManager;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Illuminate\Contracts\View\Factory;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Ai\Events\AgentPrompted;
+use Laravel\Ai\Events\AgentStreamed;
 
 class MemoryServiceProvider extends ServiceProvider
 {
@@ -24,6 +32,11 @@ class MemoryServiceProvider extends ServiceProvider
 
         $this->app->singleton(MemoryWriter::class);
         $this->app->singleton(MemoryManager::class);
+
+        $this->app->bind(DecidesDuplicates::class, fn (): DecidesDuplicates => match (config('memory.decider')) {
+            'classification' => new ClassificationDecider,
+            default => new AgentDecider,
+        });
     }
 
     /**
@@ -34,11 +47,15 @@ class MemoryServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->callAfterResolving('view', fn (Factory $view) => $view->addLocation(__DIR__.'/../resources/views'));
 
+        Event::listen([AgentPrompted::class, AgentStreamed::class], QueueMemoryExtraction::class);
+
         if (Gate::getPolicyFor(AgentMemory::class) === null) {
             Gate::policy(AgentMemory::class, MemoryPolicy::class);
         }
 
         if ($this->app->runningInConsole()) {
+            $this->commands([ConsolidateCommand::class]);
+
             $this->publishes([
                 __DIR__.'/../config/memory.php' => config_path('memory.php'),
             ], 'memory-config');

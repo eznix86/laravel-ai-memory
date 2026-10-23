@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace Eznix86\AI\Memory\Services;
 
+use Eznix86\AI\Memory\Contracts\DecidesDuplicates;
 use Eznix86\AI\Memory\Enums\MemoryKind;
+use Eznix86\AI\Memory\Enums\WriteOutcome;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
 use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\MemoryWrite;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class MemoryWriter
@@ -49,7 +56,7 @@ class MemoryWriter
      *
      * @throws RejectedMemory
      */
-    public function write(MemoryContext $context, array $fact): AgentMemory
+    public function write(MemoryContext $context, array $fact): MemoryWrite
     {
         $fact = $this->validate($fact);
 
@@ -80,9 +87,72 @@ class MemoryWriter
             $memory->creator()->associate($fact['creator']);
         }
 
+        $memory->embedding = Str::of($memory->embeddingText())->toEmbeddings();
+
+        $candidates = $this->candidates($context, $memory);
+
+        if ($candidates->isEmpty()) {
+            return $this->add($context, $memory);
+        }
+
+        $decision = app(DecidesDuplicates::class)->decide($memory, $candidates);
+
+        $chosen = $candidates->first(fn (AgentMemory $candidate): bool => $candidate->id === $decision['replace_id']);
+
+        return match (true) {
+            $decision['decision'] === 'noop' => new MemoryWrite(WriteOutcome::Known, $chosen ?? $candidates->firstOrFail()),
+            $decision['decision'] === 'update' && $chosen instanceof AgentMemory => $this->replace($chosen, $memory),
+            default => $this->add($context, $memory),
+        };
+    }
+
+    /**
+     * Find the live memories that may say the same thing as the new one.
+     *
+     * @return Collection<int, AgentMemory>
+     */
+    protected function candidates(MemoryContext $context, AgentMemory $memory): Collection
+    {
+        return AgentMemory::query()
+            ->forContext($context)
+            ->live()
+            ->when($memory->user, fn (Builder $query, Model $user) => $query->whereBelongsToUser($user), fn (Builder $query) => $query->whereNull('user_id'))
+            ->when($memory->subject, fn (Builder $query, string $subject) => $query->where('subject', $subject))
+            ->whereVectorSimilarTo('embedding', $memory->embedding ?? [], config('memory.duplicate_similarity'))
+            ->limit(5)
+            ->get();
+    }
+
+    /**
+     * Store a new memory, archiving the weakest ones when the context is full.
+     */
+    protected function add(MemoryContext $context, AgentMemory $memory): MemoryWrite
+    {
+        $live = AgentMemory::query()->forContext($context)->live();
+
+        $excess = $live->count() - config('memory.max_live') + 1;
+
+        if ($excess > 0) {
+            AgentMemory::query()->forContext($context)->live()->whereNull('creator_id')->weakestFirst()->limit($excess)->get()
+                ->each(fn (AgentMemory $weak) => $weak->update(['archived_at' => now()]));
+        }
+
         $memory->save();
 
-        return $memory;
+        return new MemoryWrite(WriteOutcome::Added, $memory);
+    }
+
+    /**
+     * Store a new memory that supersedes an old one.
+     */
+    protected function replace(AgentMemory $old, AgentMemory $memory): MemoryWrite
+    {
+        DB::transaction(function () use ($old, $memory): void {
+            $memory->save();
+            $old->update(['superseded_by' => $memory->id]);
+        });
+
+        return new MemoryWrite(WriteOutcome::Updated, $memory, $old);
     }
 
     /**

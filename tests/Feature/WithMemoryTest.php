@@ -74,7 +74,7 @@ test('loading increments recall count and sets last used once per prompt', funct
     $context = new MemoryContext(workspace());
     $memory = memory($context, 'The user lives in Mauritius.');
 
-    AssistantAgent::fake([new ToolCall('call-1', 'RecallMemory', ['query' => 'home']), 'Mauritius.']);
+    AssistantAgent::fake([new ToolCall('call-1', 'RecallMemory', ['query' => 'Where does the user live?']), 'Mauritius.']);
     (new AssistantAgent($context))->prompt('Where do I live?');
 
     expect($memory->fresh())
@@ -86,7 +86,7 @@ test('memories stay in the instructions after a tool call', function (): void {
     $context = new MemoryContext(workspace());
     memory($context, 'The user lives in Mauritius.');
 
-    AssistantAgent::fake([new ToolCall('call-1', 'RecallMemory', ['query' => 'home']), 'Mauritius.']);
+    AssistantAgent::fake([new ToolCall('call-1', 'RecallMemory', ['query' => 'Where does the user live?']), 'Mauritius.']);
     (new AssistantAgent($context))->prompt('Where do I live?');
 
     expect(AssistantAgent::$instructions)->toHaveCount(2)

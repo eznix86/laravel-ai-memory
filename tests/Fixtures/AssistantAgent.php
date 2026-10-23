@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures;
 
 use Closure;
+use Eznix86\AI\Memory\Contracts\HasMemory;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Middleware\WithMemory;
 use Eznix86\AI\Memory\Skills\MemorySkill;
@@ -19,7 +20,7 @@ use Laravel\Ai\PendingStep;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-class AssistantAgent implements Agent, HasMiddleware, HasSkills, HasTools
+class AssistantAgent implements Agent, HasMemory, HasMiddleware, HasSkills, HasTools
 {
     use Promptable;
 
@@ -35,6 +36,11 @@ class AssistantAgent implements Agent, HasMiddleware, HasSkills, HasTools
     public function instructions(): Stringable|string
     {
         return 'You are a helpful assistant.';
+    }
+
+    public function memoryContext(): MemoryContext
+    {
+        return $this->context;
     }
 
     public function tools(): iterable

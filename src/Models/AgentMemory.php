@@ -71,10 +71,37 @@ class AgentMemory extends Model
     protected static function booted(): void
     {
         static::saving(function (AgentMemory $memory): void {
-            if ($memory->isDirty(['content', 'subject', 'kind'])) {
+            if ($memory->isDirty(['content', 'subject', 'kind']) && ! $memory->isDirty('embedding')) {
                 $memory->embedding = Str::of($memory->embeddingText())->toEmbeddings();
             }
         });
+    }
+
+    /**
+     * Get the decayed strength of the memory, from 0 to 1.
+     */
+    public function strength(): float
+    {
+        $days = ($this->last_used_at ?? $this->created_at ?? now())->diffInSeconds(now()) / 86400;
+
+        return min(1.0, $this->importance * 0.5 ** ($days / $this->kind->halfLife()) * (1 + 0.1 * min($this->recall_count, 10)));
+    }
+
+    /**
+     * Get the SQL expression of the strength, with its bindings.
+     *
+     * @return array{0: string, 1: list<string>}
+     */
+    public static function strengthExpression(): array
+    {
+        $halfLives = collect(MemoryKind::cases())
+            ->map(fn (MemoryKind $kind): string => "when '{$kind->value}' then {$kind->halfLife()}")
+            ->implode(' ');
+
+        return [
+            "least(1, importance * power(0.5, extract(epoch from (?::timestamp - coalesce(last_used_at, created_at))) / 86400 / (case kind {$halfLives} end)) * (1 + 0.1 * least(recall_count, 10)))",
+            [now()->toDateTimeString()],
+        ];
     }
 
     /**
@@ -133,8 +160,7 @@ class AgentMemory extends Model
     #[Scope]
     protected function forContext(Builder $query, MemoryContext $context): void
     {
-        $query->where('tenant_type', $context->tenant->getMorphClass())
-            ->where('tenant_id', (string) $context->tenant->getKey())
+        $query->forTenant($context->tenant)
             ->where(function (Builder $query) use ($context): void {
                 $query->whereNull('user_id');
 
@@ -142,6 +168,17 @@ class AgentMemory extends Model
                     $query->orWhere(fn (Builder $query) => $query->whereBelongsToUser($context->user));
                 }
             });
+    }
+
+    /**
+     * Limit the query to the memories of the given tenant, personal ones included.
+     *
+     * @param  Builder<AgentMemory>  $query
+     */
+    #[Scope]
+    protected function forTenant(Builder $query, Model $tenant): void
+    {
+        $query->where('tenant_type', $tenant->getMorphClass())->where('tenant_id', (string) $tenant->getKey());
     }
 
     /**
@@ -176,7 +213,35 @@ class AgentMemory extends Model
     #[Scope]
     protected function strongestFirst(Builder $query): void
     {
-        $query->orderByDesc('importance')->orderByRaw('coalesce(last_used_at, created_at) desc')->orderByDesc('id');
+        [$expression, $bindings] = self::strengthExpression();
+
+        $query->orderByRaw("{$expression} desc", $bindings)->orderByDesc('id');
+    }
+
+    /**
+     * Order the query from the weakest memory to the strongest.
+     *
+     * @param  Builder<AgentMemory>  $query
+     */
+    #[Scope]
+    protected function weakestFirst(Builder $query): void
+    {
+        [$expression, $bindings] = self::strengthExpression();
+
+        $query->orderByRaw("{$expression} asc", $bindings)->orderBy('id');
+    }
+
+    /**
+     * Limit the query to memories weaker than the given strength.
+     *
+     * @param  Builder<AgentMemory>  $query
+     */
+    #[Scope]
+    protected function weakerThan(Builder $query, float $strength): void
+    {
+        [$expression, $bindings] = self::strengthExpression();
+
+        $query->whereRaw("{$expression} < ?", [...$bindings, $strength]);
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eznix86\AI\Memory\Tools;
 
 use Eznix86\AI\Memory\Enums\MemoryKind;
+use Eznix86\AI\Memory\Enums\WriteOutcome;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Services\MemoryWriter;
@@ -36,7 +37,7 @@ class Remember implements Tool
     public function handle(Request $request): Stringable|string
     {
         try {
-            $memory = app(MemoryWriter::class)->write($this->context, [
+            $write = app(MemoryWriter::class)->write($this->context, [
                 'kind' => $request['kind'],
                 'content' => $request['content'],
                 'subject' => $request['subject'] ?? null,
@@ -47,7 +48,11 @@ class Remember implements Tool
             return $exception->getMessage();
         }
 
-        return "Remembered as #{$memory->id}.";
+        return match ($write->outcome) {
+            WriteOutcome::Added => "Remembered as #{$write->memory->id}.",
+            WriteOutcome::Updated => "Remembered as #{$write->memory->id}. It replaces #{$write->replaced?->id}.",
+            WriteOutcome::Known => "Already known as #{$write->memory->id}. Nothing was stored.",
+        };
     }
 
     /**

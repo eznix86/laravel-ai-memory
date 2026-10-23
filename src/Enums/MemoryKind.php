@@ -20,4 +20,18 @@ enum MemoryKind: string
     {
         return $this === self::Preference;
     }
+
+    /**
+     * Get the number of unused days after which a memory of this kind is half as strong.
+     */
+    public function halfLife(): int
+    {
+        return match ($this) {
+            self::Preference => 180,
+            self::Process, self::Correction => 365,
+            self::CustomerNote => 120,
+            self::Lesson => 90,
+            self::Context => 21,
+        };
+    }
 }

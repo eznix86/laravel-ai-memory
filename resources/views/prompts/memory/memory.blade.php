@@ -1,1 +1,1 @@
-#{{ $memory->id }} [{{ $memory->kind->value }}] {!! $memory->content !!}
+#{{ $memory->id }} [{{ $memory->kind->value }}]@if ($memory->archived_at) (archived)@endif {!! $memory->content !!}

@@ -7,6 +7,7 @@ namespace Eznix86\AI\Memory\Services;
 use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
 use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\MemoryWrite;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -45,7 +46,7 @@ class MemoryManager
      *
      * @throws RejectedMemory
      */
-    public function add(MemoryContext $context, Model $creator, array $fact): AgentMemory
+    public function add(MemoryContext $context, Model $creator, array $fact): MemoryWrite
     {
         return $this->writer->write($context, [...$fact, 'source' => 'user', 'creator' => $creator]);
     }
@@ -96,8 +97,7 @@ class MemoryManager
     public function purge(Model $tenant, string $subject): int
     {
         return AgentMemory::query()
-            ->where('tenant_type', $tenant->getMorphClass())
-            ->where('tenant_id', (string) $tenant->getKey())
+            ->forTenant($tenant)
             ->where('subject', $subject)
             ->delete();
     }

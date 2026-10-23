@@ -16,7 +16,7 @@ function write(array $fact, ?MemoryContext $context = null): AgentMemory
         'kind' => MemoryKind::Lesson,
         'source' => 'test',
         ...$fact,
-    ]);
+    ])->memory;
 }
 
 test('a fact is stored in the tenant with its source and an embedding', function (): void {

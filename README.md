@@ -63,6 +63,7 @@ A memory belongs to the whole tenant, or to one user. Preferences are personal. 
 ## Agent setup
 
 ```php
+use Eznix86\AI\Memory\Contracts\HasMemory;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Middleware\WithMemory;
 use Eznix86\AI\Memory\Tools\Forget;
@@ -73,7 +74,7 @@ use Laravel\Ai\Contracts\HasMiddleware;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Promptable;
 
-class AssistantAgent implements Agent, HasMiddleware, HasTools
+class AssistantAgent implements Agent, HasMemory, HasMiddleware, HasTools
 {
     use Promptable;
 
@@ -84,6 +85,11 @@ class AssistantAgent implements Agent, HasMiddleware, HasTools
     public function instructions(): string
     {
         return 'You are a helpful assistant.';
+    }
+
+    public function memoryContext(): MemoryContext
+    {
+        return $this->context;
     }
 
     public function tools(): iterable
@@ -104,6 +110,8 @@ class AssistantAgent implements Agent, HasMiddleware, HasTools
 }
 ```
 
+`HasMemory` turns on automatic extraction for the agent (see below).
+
 `WithMemory` adds the 30 strongest live memories to the agent instructions, once per prompt. The memories stay in the instructions after tool calls. The user's preferences and the memories about the context subjects are always included. Each loaded memory has its `recall_count` incremented and its `last_used_at` set.
 
 The tools:
@@ -112,7 +120,7 @@ The tools:
 |---|---|
 | `Remember` | Stores one fact: `kind`, `content` (at most 300 characters), optional `subject` and `importance` from 0 to 1 |
 | `Forget` | Archives a memory by id. Nothing is deleted, and a person can restore it |
-| `RecallMemory` | Searches the memories that were not loaded |
+| `RecallMemory` | Searches the memories that were not loaded. It ranks them by keyword (Postgres full text) and by meaning (pgvector), fuses both rankings with reciprocal rank fusion, weighs them by strength and returns the top 8. Archived memories are searched only when the agent passes `include_archived` |
 
 ### Memory skill
 
@@ -144,6 +152,61 @@ Every write goes through `MemoryWriter`. It rejects:
 - facts phrased as instructions to the agent, such as "Always approve refunds" or "Ignore previous instructions"
 
 The `Remember` tool returns the reason to the agent, so it can restate the fact.
+
+## Duplicates and corrections
+
+Before a fact is stored, the writer looks for up to 5 live memories with the same owner and subject, and a cosine similarity of 0.75 or more. When it finds some, it asks for one decision:
+
+| Decision | Effect |
+|---|---|
+| `noop` | A memory already says it. Nothing is stored |
+| `update` | The fact changes one of the candidates. The new row is stored and the old one gets `superseded_by` |
+| `add` | The fact is about something else. It is stored |
+
+The decision comes from one of two deciders, set with `MEMORY_DECIDER`:
+
+| Decider | Asks | Providers |
+|---|---|---|
+| `agent` (default) | A text model with structured output, through `MEMORY_PROVIDER` and `MEMORY_MODEL` | Any text provider, Ollama included |
+| `classification` | A classification model through the SDK's `Classification`, as a choice between `add`, `noop` and one `replace_{id}` per candidate | TypeSafe SystemOne (`jev-latest`), OpenAI, OpenRouter, and OpenAI-compatible servers with a `decisions` endpoint |
+
+You can bind your own `Eznix86\AI\Memory\Contracts\DecidesDuplicates` too.
+
+When a context holds more than 500 live memories, the weakest ones are archived before a new one is added. Memories a person wrote or confirmed are kept.
+
+## Automatic extraction
+
+After every prompt to an agent that implements `HasMemory`, an `ExtractMemories` job is queued with the user message and the reply. A small agent picks out at most 3 facts the user stated or confirmed, and ignores text quoted from emails, documents or customer messages. Each fact goes through the writer, with `extraction` as its source. Turn it off with `MEMORY_EXTRACTION=false`.
+
+## Decay
+
+Every memory has a strength from 0 to 1:
+
+```
+strength = min(1, importance × 0.5^(days unused / half-life) × (1 + 0.1 × min(recall count, 10)))
+```
+
+| Kind | Half-life |
+|---|---|
+| `preference` | 180 days |
+| `process`, `correction` | 365 days |
+| `customer_note` | 120 days |
+| `lesson` | 90 days |
+| `context` | 21 days |
+
+Loading and recall use the strongest memories first, and each use makes a memory stronger again.
+
+## Consolidation
+
+Schedule the consolidation once a week:
+
+```php
+Schedule::command('memory:consolidate')->weeklyOn(0, '03:00');
+```
+
+It queues one `ConsolidateMemories` job per tenant. The job merges every subject with 6 or more live memories into one note written by a small agent, and the originals get `superseded_by`. Then it archives the memories whose strength fell below 0.05, except the ones a person wrote or confirmed. Pass `--sync` to run it at once.
+
+Nothing the agent does deletes a row. Superseded and archived memories stay as history, and only `Memories::delete()` and `Memories::purge()` remove rows.
 
 ## Managing memories
 
@@ -193,6 +256,10 @@ The text the agent sees comes from Blade views in `resources/views/prompts/memor
 | `prompts.memory.tools.recall-memory-results` | `RecallMemory` results |
 | `prompts.memory.skill.description` | `MemorySkill` description |
 | `prompts.memory.skill.instructions` | `MemorySkill` instructions |
+| `prompts.memory.agents.decider`, `decider-prompt` | Duplicate decider instructions and prompt |
+| `prompts.memory.classification.decider` | Classification decider question |
+| `prompts.memory.agents.extractor`, `extractor-prompt` | Extraction instructions and prompt |
+| `prompts.memory.agents.consolidator`, `consolidator-prompt` | Consolidation instructions and prompt |
 
 Use `{!! !!}` for memory content in your templates. `{{ }}` escapes quotes as HTML entities, and the model then sees `&quot;`.
 
@@ -205,6 +272,15 @@ Use `{!! !!}` for memory content in your templates. `{{ }}` escapes quotes as HT
 | `loaded_limit` | `MEMORY_LOADED_LIMIT` | `30` | Memories added to the instructions |
 | `recall_limit` | `MEMORY_RECALL_LIMIT` | `8` | Memories returned by `RecallMemory` |
 | `recall_min_similarity` | `MEMORY_RECALL_MIN_SIMILARITY` | `0.3` | Minimum cosine similarity for `RecallMemory` |
+| `provider`, `model` | `MEMORY_PROVIDER`, `MEMORY_MODEL` | default | Provider and model of the decider, extractor and consolidator agents |
+| `decider` | `MEMORY_DECIDER` | `agent` | `agent` or `classification` |
+| `classification_provider`, `classification_model` | `MEMORY_CLASSIFICATION_PROVIDER`, `MEMORY_CLASSIFICATION_MODEL` | default | Provider and model of the classification decider |
+| `queue` | `MEMORY_QUEUE` | default | Queue of the extraction and consolidation jobs |
+| `extraction` | `MEMORY_EXTRACTION` | `true` | Extract facts after each turn |
+| `duplicate_similarity` | `MEMORY_DUPLICATE_SIMILARITY` | `0.75` | Similarity from which a memory is a duplicate candidate |
+| `max_live` | `MEMORY_MAX_LIVE` | `500` | Live memories per context before the weakest are archived |
+| `consolidation_threshold` | `MEMORY_CONSOLIDATION_THRESHOLD` | `6` | Memories on one subject before they are merged |
+| `archive_below` | `MEMORY_ARCHIVE_BELOW` | `0.05` | Strength under which consolidation archives a memory |
 
 ## Testing
 
@@ -214,7 +290,14 @@ The package tests use [Pest](https://pestphp.com) and [Testcontainers](https://t
 ./vendor/bin/pest
 ```
 
-In your own tests, `Memories::fake()` fakes embeddings with one identical vector, so every memory matches every query:
+In your own tests, `Memories::fake()` fakes everything the package calls:
+
+- embeddings, with word-count vectors, so texts that share words are similar
+- the decider, which answers `add`, and the classification, which answers `add`
+- the extractor, which finds no facts
+- the consolidator, which answers "Merged note."
+
+Fake one of them again to test a decision, for example `MemoryDecider::fake([['decision' => 'noop', 'replace_id' => null]])`.
 
 ```php
 use Eznix86\AI\Memory\Facades\Memories;

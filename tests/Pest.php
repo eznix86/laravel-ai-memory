@@ -64,7 +64,7 @@ function user(string $name = 'Ada'): User
  */
 function memory(MemoryContext $context, string $content, MemoryKind $kind = MemoryKind::Lesson, array $attributes = []): AgentMemory
 {
-    $memory = app(MemoryWriter::class)->write($context, ['kind' => $kind, 'content' => $content, 'source' => 'test']);
+    $memory = app(MemoryWriter::class)->write($context, ['kind' => $kind, 'content' => $content, 'source' => 'test'])->memory;
 
     if ($attributes !== []) {
         $memory->forceFill($attributes)->saveQuietly();
