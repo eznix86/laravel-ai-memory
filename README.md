@@ -114,6 +114,27 @@ The tools:
 | `Forget` | Archives a memory by id. Nothing is deleted, and a person can restore it |
 | `RecallMemory` | Searches the memories that were not loaded |
 
+### Memory skill
+
+`MemorySkill` teaches the agent how to use its memory well: when a fact is worth keeping, which kind and subject to choose, and how to correct a fact. The agent loads it with the SDK's `LoadSkill` tool when it needs it.
+
+```php
+use Eznix86\AI\Memory\Skills\MemorySkill;
+use Laravel\Ai\Contracts\HasSkills;
+
+class AssistantAgent implements Agent, HasMiddleware, HasSkills, HasTools
+{
+    public function skills(): iterable
+    {
+        return [
+            MemorySkill::make(),
+        ];
+    }
+}
+```
+
+The safety rules are also in the tool descriptions, because small models often do not load skills.
+
 ## What gets rejected
 
 Every write goes through `MemoryWriter`. It rejects:
@@ -170,6 +191,8 @@ The text the agent sees comes from Blade views in `resources/views/prompts/memor
 | `prompts.memory.tools.forget` | `Forget` description |
 | `prompts.memory.tools.recall-memory` | `RecallMemory` description |
 | `prompts.memory.tools.recall-memory-results` | `RecallMemory` results |
+| `prompts.memory.skill.description` | `MemorySkill` description |
+| `prompts.memory.skill.instructions` | `MemorySkill` instructions |
 
 Use `{!! !!}` for memory content in your templates. `{{ }}` escapes quotes as HTML entities, and the model then sees `&quot;`.
 

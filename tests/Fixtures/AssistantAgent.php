@@ -7,17 +7,19 @@ namespace Tests\Fixtures;
 use Closure;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Middleware\WithMemory;
+use Eznix86\AI\Memory\Skills\MemorySkill;
 use Eznix86\AI\Memory\Tools\Forget;
 use Eznix86\AI\Memory\Tools\RecallMemory;
 use Eznix86\AI\Memory\Tools\Remember;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasMiddleware;
+use Laravel\Ai\Contracts\HasSkills;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\PendingStep;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-class AssistantAgent implements Agent, HasMiddleware, HasTools
+class AssistantAgent implements Agent, HasMiddleware, HasSkills, HasTools
 {
     use Promptable;
 
@@ -41,6 +43,13 @@ class AssistantAgent implements Agent, HasMiddleware, HasTools
             new Remember($this->context),
             new Forget($this->context),
             new RecallMemory($this->context),
+        ];
+    }
+
+    public function skills(): iterable
+    {
+        return [
+            MemorySkill::make(),
         ];
     }
 
