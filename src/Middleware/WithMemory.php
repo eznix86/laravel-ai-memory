@@ -6,10 +6,19 @@ namespace Eznix86\AI\Memory\Middleware;
 
 use Closure;
 use Eznix86\AI\Memory\Services\MemoryManager;
-use Laravel\Ai\Prompts\AgentPrompt;
+use Laravel\Ai\Gateway\StepResult;
+use Laravel\Ai\Messages\UserMessage;
+use Laravel\Ai\PendingStep;
 
 class WithMemory
 {
+    /**
+     * The recalled memories, keyed by invocation id.
+     *
+     * @var array<string, string|null>
+     */
+    protected array $recalled = [];
+
     /**
      * Create a new memory middleware instance.
      *
@@ -21,30 +30,50 @@ class WithMemory
     ) {}
 
     /**
-     * Handle an incoming agent prompt.
+     * Handle the pending generation step.
      */
-    public function handle(AgentPrompt $prompt, Closure $next): mixed
+    public function handle(PendingStep $step, Closure $next): StepResult
     {
         if ($this->context === []) {
-            return $next($prompt);
+            return $next($step);
         }
 
-        $limit = $this->limit ?? config('memory.middleware_recall_limit', 5);
+        $key = (string) $step->invocationId;
 
-        $memoryManager = app(MemoryManager::class);
+        if (! array_key_exists($key, $this->recalled)) {
+            $this->recalled[$key] = $this->recall($step);
+        }
 
-        $memories = $memoryManager->recall(
-            $prompt->prompt,
+        $memories = $this->recalled[$key];
+
+        if ($memories === null) {
+            return $next($step);
+        }
+
+        return $next($step->withInstructions(trim($step->instructions."\n\n".$memories)));
+    }
+
+    /**
+     * Recall the memories relevant to the latest user message.
+     */
+    protected function recall(PendingStep $step): ?string
+    {
+        $message = collect($step->messages)->last(fn ($message): bool => $message instanceof UserMessage);
+
+        if (blank($message?->content)) {
+            return null;
+        }
+
+        $memories = app(MemoryManager::class)->recall(
+            $message->content,
             $this->context,
-            $limit,
+            $this->limit ?? config('memory.middleware_recall_limit', 5),
         );
 
-        if ($memories->isNotEmpty()) {
-            $memoryContext = $memories->map(fn ($memory): string => "- {$memory->content}")->implode("\n");
-
-            $prompt = $prompt->prepend("Relevant memories from previous conversations:\n{$memoryContext}");
+        if ($memories->isEmpty()) {
+            return null;
         }
 
-        return $next($prompt);
+        return "Relevant memories from previous conversations:\n".$memories->map(fn ($memory): string => "- {$memory->content}")->implode("\n");
     }
 }

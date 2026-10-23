@@ -8,6 +8,7 @@ use Eznix86\AI\Memory\Tools\RecallMemory;
 use Eznix86\AI\Memory\Tools\StoreMemory;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 use Laravel\Ai\Prompts\AgentPrompt;
+use Laravel\Ai\Responses\Data\ToolCall;
 use Laravel\Ai\Tools\Request;
 use Tests\Fixtures\MemoryAgent;
 
@@ -108,10 +109,8 @@ test('RecallMemory has a description', function (): void {
 test('WithMemory middleware prepends memories to prompt', function (): void {
     AgentMemory::fake();
 
-    // Pre-store memories
     AgentMemory::store('User prefers dark mode', ['user_id' => 'user-123']);
 
-    // The dynamic fake closure receives the final prompt string (after middleware)
     $receivedPrompt = null;
     MemoryAgent::fake(function (string $prompt) use (&$receivedPrompt): string {
         $receivedPrompt = $prompt;
@@ -123,9 +122,10 @@ test('WithMemory middleware prepends memories to prompt', function (): void {
     $agent->prompt('Help me with my settings');
 
     expect($receivedPrompt)
+        ->toBe('Help me with my settings')
+        ->and(MemoryAgent::$instructions)
         ->toContain('Relevant memories from previous conversations')
-        ->toContain('User prefers dark mode')
-        ->toContain('Help me with my settings');
+        ->toContain('User prefers dark mode');
 });
 
 test('WithMemory middleware passes through when no user context', function (): void {
@@ -141,10 +141,8 @@ test('WithMemory middleware passes through when no user context', function (): v
     $agent = new MemoryAgent;
     $agent->prompt('Hello world');
 
-    // Prompt should NOT contain injected memories
-    expect($receivedPrompt)
-        ->toContain('Hello world')
-        ->not->toContain('Relevant memories');
+    expect($receivedPrompt)->toBe('Hello world')
+        ->and(MemoryAgent::$instructions)->not->toContain('Relevant memories');
 });
 
 test('WithMemory middleware passes through when no memories exist', function (): void {
@@ -160,10 +158,8 @@ test('WithMemory middleware passes through when no memories exist', function ():
     $agent = new MemoryAgent(['user_id' => 'user-no-memories']);
     $agent->prompt('Hello world');
 
-    // Prompt should NOT contain injected memories
-    expect($receivedPrompt)
-        ->toContain('Hello world')
-        ->not->toContain('Relevant memories');
+    expect($receivedPrompt)->toBe('Hello world')
+        ->and(MemoryAgent::$instructions)->not->toContain('Relevant memories');
 });
 
 test('MemoryAgent can be faked and prompted', function (): void {
@@ -194,8 +190,7 @@ test('MemoryAgent has WithMemory middleware', function (): void {
     $agent = new MemoryAgent(['user_id' => 'user-123']);
     $middleware = $agent->middleware();
 
-    expect($middleware)->toHaveCount(1)
-        ->and($middleware[0])->toBeInstanceOf(WithMemory::class);
+    expect($middleware[0])->toBeInstanceOf(WithMemory::class);
 });
 
 test('MemoryAgent fake with dynamic response', function (): void {
@@ -240,11 +235,9 @@ test('StoreMemory and RecallMemory work together', function (): void {
 test('WithMemory middleware uses stored memories from tools', function (): void {
     AgentMemory::fake();
 
-    // Store a memory using the tool
     $storeTool = (new StoreMemory)->context(['user_id' => 'user-mid']);
     $storeTool->handle(new Request(['content' => 'User lives in Mauritius']));
 
-    // The dynamic fake closure receives the final prompt string (after middleware)
     $receivedPrompt = null;
     MemoryAgent::fake(function (string $prompt) use (&$receivedPrompt): string {
         $receivedPrompt = $prompt;
@@ -256,9 +249,26 @@ test('WithMemory middleware uses stored memories from tools', function (): void 
     $agent->prompt('Where does the user live?');
 
     expect($receivedPrompt)
+        ->toBe('Where does the user live?')
+        ->and(MemoryAgent::$instructions)
         ->toContain('Relevant memories from previous conversations')
-        ->toContain('User lives in Mauritius')
-        ->toContain('Where does the user live?');
+        ->toContain('User lives in Mauritius');
+});
+
+test('WithMemory keeps memories in the instructions after a tool call', function (): void {
+    AgentMemory::fake();
+
+    AgentMemory::store('User lives in Mauritius', ['user_id' => 'user-steps']);
+
+    MemoryAgent::fake([
+        new ToolCall('call-1', 'RecallMemory', ['query' => 'home']),
+        'Mauritius it is!',
+    ]);
+
+    $response = (new MemoryAgent(['user_id' => 'user-steps']))->prompt('Where does the user live?');
+
+    expect($response->steps)->toHaveCount(2)
+        ->and(MemoryAgent::$instructions)->toContain('User lives in Mauritius');
 });
 
 test('RecallMemory returns empty message when user has no memories', function (): void {

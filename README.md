@@ -7,8 +7,8 @@ Agentic memory for [Laravel AI SDK](https://github.com/laravel/ai).
 ## Requirements
 
 - PHP 8.3+
-- Laravel 12+
-- laravel AI SDK
+- Laravel 12.62+ or 13.15+
+- Laravel AI SDK 1.3+
 - A vector compatible database, preferably PostgreSQL with [pgvector](https://github.com/pgvector/pgvector) extension
 
 ## Installation
@@ -90,7 +90,7 @@ The AI agent will automatically decide when to store and recall memories using t
 
 ### WithMemory Middleware
 
-Automatically prepend relevant memories to every agent prompt:
+Automatically add relevant memories to the agent instructions:
 
 ```php
 use Eznix86\AI\Memory\Middleware\WithMemory;
@@ -113,8 +113,8 @@ class MyAgent implements Agent, HasTools, HasMiddleware
 ```
 
 When a user prompts the agent, the middleware will:
-1. Search for relevant memories using the prompt text
-2. Prepend them to the prompt as context
+1. Search for relevant memories using the latest user message, once per prompt
+2. Add them to the agent instructions on every step, including the steps after tool calls
 3. The agent sees them before responding
 
 ### Using the Agent
