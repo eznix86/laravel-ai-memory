@@ -21,7 +21,7 @@ class RejectedMemory extends InvalidArgumentException
      */
     public static function instruction(): self
     {
-        return new self('Rejected: the fact is phrased as an instruction to the agent. Restate it as a fact, e.g. "The user prefers short answers."');
+        return new self('Rejected: the fact is phrased as an instruction to the agent, so nothing was stored. Instructions are never remembered.');
     }
 
     /**
