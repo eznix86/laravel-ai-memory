@@ -9,6 +9,7 @@ use Eznix86\AI\Memory\Tools\RecallMemory;
 use Laravel\Ai\Tools\Request;
 use Tests\Fixtures\AssistantAgent;
 use Tests\Fixtures\User;
+use Tests\Fixtures\Workspace;
 
 test('a memory from one workspace never appears in another workspace', function (): void {
     $user = user();
@@ -85,3 +86,12 @@ test('without an owner, the user owns the memories and they stay private', funct
 test('a context needs a user or an owner', function (): void {
     new MemoryContext;
 })->throws(InvalidArgumentException::class, 'needs a user, an owner, or both');
+
+test('a conversation can be given as its id or as a model', function (): void {
+    $user = user();
+    $thread = Workspace::create(['name' => 'Thread']);
+
+    expect(new MemoryContext(user: $user, conversation: 'conv-1'))->source()->toBe('conversation:conv-1')
+        ->and(new MemoryContext(user: $user, conversation: $thread))->source()->toBe("conversation:{$thread->id}")
+        ->and(new MemoryContext(user: $user))->source()->toBe('agent');
+});

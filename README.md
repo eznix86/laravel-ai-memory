@@ -133,7 +133,7 @@ use Eznix86\AI\Memory\MemoryContext;
 $context = new MemoryContext(
     user: $request->user(),             // the user the agent talks to
     owner: $team,                       // optional: any Eloquent model whose members share the memories
-    conversation: $conversationId,      // optional: recorded as the source of new memories
+    conversation: $conversationId,      // optional: an id or a model, recorded as the source of new memories
 );
 ```
 

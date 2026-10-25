@@ -15,6 +15,11 @@ final readonly class MemoryContext
     public Model $owner;
 
     /**
+     * The id of the conversation the memories are learned in.
+     */
+    public ?string $conversation;
+
+    /**
      * Create a new memory context.
      *
      * @throws InvalidArgumentException
@@ -22,9 +27,10 @@ final readonly class MemoryContext
     public function __construct(
         public ?Model $user = null,
         ?Model $owner = null,
-        public ?string $conversation = null,
+        string|Model|null $conversation = null,
     ) {
         $this->owner = $owner ?? $user ?? throw new InvalidArgumentException('A memory context needs a user, an owner, or both.');
+        $this->conversation = $conversation instanceof Model ? (string) $conversation->getKey() : $conversation;
     }
 
     /**
