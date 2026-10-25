@@ -13,7 +13,7 @@ test('a real conversation where the user says something about themselves leaves 
     expect(fn (): string => $this->memoriesOf($context)->implode("\n"))
         ->prompt($this->userSide($case['turns']))
         ->toBeFactual($case['fact']);
-})->with(EvalTestCase::cases('oasst2', 'stored'));
+})->with([...EvalTestCase::cases('oasst2', 'stored'), ...EvalTestCase::cases('oasst2-fresh', 'stored')]);
 
 test('a real conversation with nothing about the user leaves no memory', function (array $case): void {
     $context = $this->context();
@@ -21,4 +21,4 @@ test('a real conversation with nothing about the user leaves no memory', functio
     $this->extractFrom($context, $case['turns']);
 
     expect($this->memoriesOf($context)->all())->toBe([]);
-})->with(EvalTestCase::cases('oasst2', 'ignored'));
+})->with([...EvalTestCase::cases('oasst2', 'ignored'), ...EvalTestCase::cases('oasst2-fresh', 'ignored')]);
