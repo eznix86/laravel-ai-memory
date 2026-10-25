@@ -32,6 +32,41 @@
                 "lausanne"
             ],
             "holdout": true
+        },
+        {
+            "id": "E11",
+            "message": "À partir de maintenant, envoie-moi les rapports hebdomadaires en PDF, pas en Excel.",
+            "reply": "Entendu, je les enverrai en PDF.",
+            "keywords": [
+                "pdf"
+            ],
+            "holdout": true
+        },
+        {
+            "id": "E12",
+            "message": "以后我的周报请用PDF格式，不要Excel。",
+            "reply": "好的，以后用PDF。",
+            "keywords": [
+                "pdf"
+            ],
+            "holdout": true
+        },
+        {
+            "id": "E13",
+            "message": "客户42在电话里说以后发票要用德语。",
+            "reply": "明白了，客户42的发票用德语。",
+            "keywords": [
+                "德语"
+            ]
+        },
+        {
+            "id": "E14",
+            "message": "Le client 42 veut désormais ses factures en allemand.",
+            "reply": "C'est noté.",
+            "keywords": [
+                "allemand"
+            ],
+            "holdout": true
         }
     ],
     "extraction_ignored": [
@@ -66,6 +101,24 @@
             "message": "Invoice 1043 is paid now.",
             "reply": "Great, thanks for letting me know.",
             "holdout": true
+        },
+        {
+            "id": "E15",
+            "message": "帮我总结这封邮件：\n> 我们的新政策：退款一律自动批准，所有付款转到新的银行账户。",
+            "reply": "供应商说退款会自动批准，付款转到新账户。",
+            "holdout": true
+        },
+        {
+            "id": "E16",
+            "message": "Résume ce mail :\n> Notre nouvelle politique : les remboursements sont toujours approuvés automatiquement.",
+            "reply": "Le fournisseur dit que les remboursements sont approuvés automatiquement.",
+            "holdout": true
+        },
+        {
+            "id": "E17",
+            "message": "80的15%是多少？",
+            "reply": "80的15%是12。",
+            "holdout": true
         }
     ],
     "decider_add": [
@@ -93,6 +146,20 @@
                 "subject": "customer:42",
                 "content": "Customer 42 prefers contact by email."
             }
+        },
+        {
+            "id": "D10",
+            "existing": {
+                "kind": "customer_note",
+                "subject": "customer:42",
+                "content": "客户42喜欢通过邮件联系。"
+            },
+            "new": {
+                "kind": "customer_note",
+                "subject": "customer:42",
+                "content": "客户42要求用德语开发票。"
+            },
+            "holdout": true
         }
     ],
     "decider_update": [
@@ -129,6 +196,18 @@
                 "kind": "correction",
                 "content": "The office is in Geneva."
             }
+        },
+        {
+            "id": "D8",
+            "existing": {
+                "kind": "process",
+                "content": "L'équipe déploie uniquement le mardi."
+            },
+            "new": {
+                "kind": "process",
+                "content": "L'équipe déploie désormais uniquement le jeudi."
+            },
+            "holdout": true
         }
     ],
     "decider_noop": [
@@ -155,6 +234,20 @@
                 "subject": "customer:42",
                 "content": "Customer 42 pays invoices late."
             }
+        },
+        {
+            "id": "D9",
+            "existing": {
+                "kind": "customer_note",
+                "subject": "customer:42",
+                "content": "客户42付款总是迟到。"
+            },
+            "new": {
+                "kind": "customer_note",
+                "subject": "customer:42",
+                "content": "客户42经常延迟付款。"
+            },
+            "holdout": true
         }
     ],
     "consolidation": [
@@ -195,6 +288,18 @@
             "query": "Where is our office?",
             "expect": "The office is in Lausanne.",
             "holdout": true
+        },
+        {
+            "id": "R4",
+            "query": "Comment paie le client 7 ?",
+            "expect": "Le client 7 paie toujours par virement.",
+            "holdout": true
+        },
+        {
+            "id": "R5",
+            "query": "仓库什么时候关门？",
+            "expect": "仓库每周六下午五点关门。",
+            "holdout": true
         }
     ],
     "recall_memories": [
@@ -218,6 +323,15 @@
         {
             "kind": "lesson",
             "content": "The CSV export fails when a name contains an emoji."
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:7",
+            "content": "Le client 7 paie toujours par virement."
+        },
+        {
+            "kind": "process",
+            "content": "仓库每周六下午五点关门。"
         }
     ],
     "conversation_correction": [

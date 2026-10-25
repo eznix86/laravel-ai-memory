@@ -10,7 +10,7 @@ use Tests\Integration\IntegrationTestCase;
 
 test('recall ranks first the memory that answers the question', function (array $case): void {
     $context = new MemoryContext(workspace(), user());
-    collect(IntegrationTestCase::cases('memory', 'recall_memories'))->each(fn (array $memory): AgentMemory => memory(
+    collect(IntegrationTestCase::cases('memory', 'recall_memories'))->each(fn (array $memory): AgentMemory => seed(
         $context, $memory[0]['content'], MemoryKind::from($memory[0]['kind']), ['subject' => $memory[0]['subject'] ?? null],
     ));
 

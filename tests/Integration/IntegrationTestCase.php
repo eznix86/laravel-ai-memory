@@ -51,13 +51,13 @@ abstract class IntegrationTestCase extends TestCase
     {
         parent::defineEnvironment($app);
 
-        $provider = env('MEMORY_LIVE_PROVIDER', 'ollama');
-        $embeddings = env('MEMORY_LIVE_EMBEDDINGS_PROVIDER', $provider);
+        $provider = env('MEMORY_LIVE_PROVIDER') ?: 'ollama';
+        $embeddings = env('MEMORY_LIVE_EMBEDDINGS_PROVIDER') ?: $provider;
 
         $app['config']->set('ai.default', $provider);
         $app['config']->set('ai.default_for_embeddings', $embeddings);
-        $app['config']->set("ai.providers.{$provider}.models.text.default", env('MEMORY_LIVE_CHAT_MODEL'));
-        $app['config']->set("ai.providers.{$embeddings}.models.embeddings.default", env('MEMORY_LIVE_EMBEDDINGS_MODEL'));
+        $app['config']->set("ai.providers.{$provider}.models.text.default", env('MEMORY_LIVE_CHAT_MODEL') ?: null);
+        $app['config']->set("ai.providers.{$embeddings}.models.embeddings.default", env('MEMORY_LIVE_EMBEDDINGS_MODEL') ?: null);
         $app['config']->set("ai.providers.{$embeddings}.models.embeddings.dimensions", config('memory.dimensions'));
     }
 }

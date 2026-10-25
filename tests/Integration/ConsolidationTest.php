@@ -11,7 +11,7 @@ use Tests\Integration\IntegrationTestCase;
 
 test('the consolidator keeps what is still true and drops what changed', function (array $case): void {
     $workspace = workspace();
-    collect($case['notes'])->each(fn (string $note, int $age): AgentMemory => memory(new MemoryContext($workspace), $note, MemoryKind::CustomerNote, [
+    collect($case['notes'])->each(fn (string $note, int $age): AgentMemory => seed(new MemoryContext($workspace), $note, MemoryKind::CustomerNote, [
         'subject' => $case['subject'],
         'created_at' => now()->subDays(60 - $age * 10),
     ]));

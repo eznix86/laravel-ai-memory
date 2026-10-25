@@ -8,6 +8,7 @@ use Eznix86\AI\Memory\Facades\Memories;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Services\MemoryWriter;
+use Illuminate\Support\Arr;
 use Tests\Fixtures\User;
 use Tests\Fixtures\Workspace;
 use Tests\Integration\IntegrationTestCase;
@@ -78,6 +79,26 @@ function memory(MemoryContext $context, string $content, MemoryKind $kind = Memo
     if ($attributes !== []) {
         $memory->forceFill($attributes)->saveQuietly();
     }
+
+    return $memory;
+}
+
+/**
+ * Store a memory without the writer, so a test starts from exactly these rows whatever the duplicate decider would say.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function seed(MemoryContext $context, string $content, MemoryKind $kind = MemoryKind::Lesson, array $attributes = []): AgentMemory
+{
+    $memory = new AgentMemory(['kind' => $kind, 'content' => $content, 'source' => 'test', 'subject' => $attributes['subject'] ?? null]);
+    $memory->tenant()->associate($context->tenant);
+
+    if ($kind->isPersonal()) {
+        $memory->user()->associate($context->user);
+    }
+
+    $memory->save();
+    $memory->forceFill(Arr::except($attributes, 'subject'))->saveQuietly();
 
     return $memory;
 }

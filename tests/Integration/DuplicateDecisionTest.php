@@ -11,7 +11,7 @@ use Tests\Integration\IntegrationTestCase;
 function writeAfter(array $case): array
 {
     $context = new MemoryContext(workspace(), user());
-    $existing = memory($context, $case['existing']['content'], MemoryKind::from($case['existing']['kind']), ['subject' => $case['existing']['subject'] ?? null]);
+    $existing = seed($context, $case['existing']['content'], MemoryKind::from($case['existing']['kind']), ['subject' => $case['existing']['subject'] ?? null]);
 
     return [$existing, app(MemoryWriter::class)->write($context, [...$case['new'], 'source' => 'test'])];
 }
