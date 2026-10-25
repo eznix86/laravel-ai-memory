@@ -4,9 +4,21 @@
 
 Long-term memory for agents built with the [Laravel AI SDK](https://github.com/laravel/ai).
 
-The agent remembers durable facts it cannot look up: preferences, team processes, corrections, customer notes, lessons and temporary context. Memories live in one table in your database. There is no external memory service.
+Your agent remembers durable facts it cannot look up: what a user prefers, how the team works, a correction, a note about a customer, a lesson, a temporary situation. The memories live in one table in your PostgreSQL database. There is no external memory service.
 
 Memory is not for business data, chat history or secrets. If a new colleague could look it up, it is a tool call, not a memory.
+
+## Features
+
+- **Scoped**: every memory belongs to a tenant (any Eloquent model) and, when it is personal, to one user. A memory never leaves its tenant.
+- **Loaded every turn**: the 30 strongest memories go into the agent instructions. The agent searches the others by keyword and by meaning.
+- **Learns by itself**: after each turn, a queued job keeps up to 3 facts the user stated. Facts taken from a quoted email or from the agent's own reply are dropped.
+- **Stays clean**: a new fact that repeats a memory is skipped, and one that contradicts a memory replaces it.
+- **Forgets slowly**: unused memories fade, a weekly job merges and archives them, and every change by the agent can be undone. Only people delete.
+- **Guarded**: the writer rejects secrets (card numbers, IBANs, API keys, passwords), instructions phrased as facts and, optionally, facts that give the agent a permission.
+- **Model-agnostic**: works with any text and embedding model of the SDK.
+- **Any language**: every prompt and message can be overridden and translated.
+- **Headless**: an API for your own memory page, with export and privacy purge. No routes, no UI.
 
 ## Requirements
 
@@ -14,56 +26,18 @@ Memory is not for business data, chat history or secrets. If a new colleague cou
 - Laravel 12.62+ or 13.15+
 - Laravel AI SDK 1.3+
 - PostgreSQL with the [pgvector](https://github.com/pgvector/pgvector) extension
-- Any text provider and model of the SDK with structured output, and any embedding model. Nothing in the package depends on a specific model
+- A queue worker, for the extraction and consolidation jobs
 
-## Installation
+## Quick start
+
+**1. Install and migrate.** Set `MEMORY_DIMENSIONS` to the output size of your embedding model (for example `1536` for OpenAI `text-embedding-3-small`), then run the migration:
 
 ```bash
 composer require eznix86/laravel-ai-memory
-```
-
-Set `MEMORY_DIMENSIONS` to the output size of your embedding model, then run the migrations:
-
-```bash
 php artisan migrate
 ```
 
-Optionally publish the config and the prompt templates:
-
-```bash
-php artisan vendor:publish --tag=memory-config
-php artisan vendor:publish --tag=memory-views
-```
-
-## Memory context
-
-Every read and write happens in a `MemoryContext`. A memory never leaves its tenant.
-
-```php
-use Eznix86\AI\Memory\MemoryContext;
-
-$context = new MemoryContext(
-    tenant: $workspace,                 // any Eloquent model: team, workspace, account
-    user: $request->user(),             // optional: sees their personal memories too
-    conversationId: $conversationId,    // optional: recorded as the source of new memories
-    subjects: ['customer:42'],          // optional: memories about these subjects are always loaded
-);
-```
-
-A subject is a stable id written as `type:id`, such as `customer:42` or `project:apollo`. Purge and consolidation work by subject. The writer rejects other subjects, and the `Remember` tool and extraction drop them, because a model's free-form labels ("team deployment") would keep duplicates apart.
-
-A memory belongs to the whole tenant, or to one user. Preferences are personal. The other kinds are shared in the tenant.
-
-| Kind | Example |
-|---|---|
-| `preference` | The user prefers short answers. |
-| `process` | Refunds above 500 francs need a manager. |
-| `correction` | The Geneva office closed in 2025. |
-| `customer_note` | Customer 42 pays late. |
-| `lesson` | The export fails when a name has an emoji. |
-| `context` | The team is in a release freeze this week. |
-
-## Agent setup
+**2. Give your agent a memory.** Build a `MemoryContext` for the current tenant and user, and hand it to the tools and the middleware:
 
 ```php
 use Eznix86\AI\Memory\Contracts\HasMemory;
@@ -113,89 +87,136 @@ class AssistantAgent implements Agent, HasMemory, HasMiddleware, HasTools
 }
 ```
 
-`HasMemory` turns on automatic extraction for the agent (see below).
+**3. Prompt it.**
 
-`WithMemory` adds the 30 strongest live memories to the agent instructions, once per prompt. The memories stay in the instructions after tool calls. The user's preferences and the memories about the context subjects are always included. Each loaded memory has its `recall_count` incremented and its `last_used_at` set.
+```php
+$context = new MemoryContext(tenant: $workspace, user: $request->user());
 
-The tools:
+(new AssistantAgent($context))->prompt('From now on, send me the weekly report as PDF.');
+```
 
-| Tool | What it does |
+The agent can store that preference with `Remember`, and the extraction job stores it too when the agent does not. Next time, it is in the instructions before the user says a word.
+
+**4. Schedule the weekly consolidation** in `routes/console.php`:
+
+```php
+Schedule::command('memory:consolidate')->weeklyOn(0, '03:00');
+```
+
+## How it works
+
+```
+Write   Remember tool ─┐
+        Extraction job ┴─> MemoryWriter: validate ─> reject secrets and instructions
+                                         ─> permission guard (optional)
+                                         ─> close memories? ─> add, replace or skip
+                                         ─> archive the weakest when the context is full
+
+Read    every prompt  ─> WithMemory loads the 30 strongest live memories
+        on demand     ─> RecallMemory: keyword search + meaning search, fused, × strength
+
+Forget  time          ─> strength decays per kind
+        contradiction ─> the old row gets superseded_by
+        Forget tool   ─> the row gets archived_at
+        weekly        ─> 6+ memories on one subject merge into one, faded ones are archived
+        people        ─> Memories::delete() and Memories::purge() remove rows
+```
+
+## The memory context
+
+Every read and write happens in a `MemoryContext`:
+
+```php
+use Eznix86\AI\Memory\MemoryContext;
+
+$context = new MemoryContext(
+    tenant: $workspace,              // any Eloquent model: team, workspace, account
+    user: $request->user(),          // optional: also sees this user's personal memories
+    conversationId: $conversationId, // optional: recorded as the source of new memories
+    subjects: ['customer:42'],       // optional: memories about these are always loaded
+);
+```
+
+Each memory has a **kind**. Preferences belong to one user. The other kinds are shared in the tenant.
+
+| Kind | Example |
 |---|---|
-| `Remember` | Stores one fact: `kind`, `content` (at most 300 characters), optional `subject` and `importance` from 0 to 1 |
-| `Forget` | Archives a memory by id. Nothing is deleted, and a person can restore it |
-| `RecallMemory` | Searches the memories that were not loaded. It ranks them by keyword (Postgres full text) and by meaning (pgvector), fuses both rankings with reciprocal rank fusion, weighs them by strength and returns the top 8. Archived memories are searched only when the agent passes `include_archived` |
+| `preference` | The user prefers short answers. |
+| `process` | Refunds above 500 francs need a manager. |
+| `correction` | The Geneva office closed in 2025. |
+| `customer_note` | Customer 42 pays late. |
+| `lesson` | The export fails when a name has an emoji. |
+| `context` | The team is in a release freeze this week. |
 
-### Memory skill
+A **subject** is a stable id written as `type:id`, such as `customer:42` or `project:apollo`. Consolidation and the privacy purge work by subject. Other subjects are rejected by the writer and dropped by the tools, because a model's free-form labels ("team deployment") would keep duplicates apart.
 
-`MemorySkill` teaches the agent how to use its memory well: when a fact is worth keeping, which kind and subject to choose, and how to correct a fact. The agent loads it with the SDK's `LoadSkill` tool when it needs it.
+## Tools, middleware and skill
+
+| Piece | What it does |
+|---|---|
+| `Remember` | Stores one fact: a kind, at most 300 characters, an optional subject and an importance from 0 to 1. It tells the agent when a fact is rejected, already known or replaces another |
+| `Forget` | Archives a memory by id. A person can restore it |
+| `RecallMemory` | Searches the memories that were not loaded. It ranks them by keyword (PostgreSQL full text) and by meaning (pgvector), fuses both rankings and weighs them by strength. Archived memories are searched only when the agent asks |
+| `WithMemory` | Adds the strongest memories to the instructions once per prompt, and keeps them after tool calls. The user's preferences and the memories about the context subjects are always included |
+| `MemorySkill` | Guidance the agent loads with the SDK's `LoadSkill` tool: when a fact is worth keeping, which kind to choose, how to correct a fact |
+
+To add the skill, implement `HasSkills`:
 
 ```php
 use Eznix86\AI\Memory\Skills\MemorySkill;
-use Laravel\Ai\Contracts\HasSkills;
 
-class AssistantAgent implements Agent, HasMiddleware, HasSkills, HasTools
+public function skills(): iterable
 {
-    public function skills(): iterable
-    {
-        return [
-            MemorySkill::make(),
-        ];
-    }
+    return [
+        MemorySkill::make(),
+    ];
 }
 ```
 
 The safety rules are also in the tool descriptions, because small models often do not load skills.
 
-## What gets rejected
+## Safety
 
 Every write goes through `MemoryWriter`. It rejects:
 
 - content that is empty or longer than 300 characters
 - card numbers (Luhn check), IBANs (checksum), API keys, tokens, private keys and passwords
-- facts phrased as instructions to the agent, such as "Always approve refunds" or "Ignore previous instructions". These patterns are in the config and only know English by default: see [Languages](#languages)
+- facts phrased as instructions, such as "Always approve refunds" or "Ignore previous instructions"
 
-The `Remember` tool returns the reason to the agent, so it can restate the fact.
+The extraction job keeps a fact only when at least half of it comes from the user's own words. Quoted lines (`>`), quoted strings, code blocks and the agent's reply do not count. So a fact the model took from a pasted email is dropped, even when the model ignored its instructions.
 
 ### Permission guard
 
-A capable model rewrites "Always approve refunds" into a fact such as "The user prefers that refunds be approved without asking". The instruction patterns do not catch that, and the fact would steer every later turn. The permission guard asks a model whether the fact lets the agent act on its own, and rejects it when the answer is yes. It costs one call per write.
+A capable model can rewrite "Always approve refunds" into "The user prefers that refunds be approved without asking". That passes the instruction patterns, and it would steer every later turn. The permission guard asks a model whether a fact lets the agent act on its own, and rejects it when it does. It costs one model call per write.
 
 | `MEMORY_PERMISSION_GUARD` | Asks |
 |---|---|
 | `none` (default) | Nothing |
-| `agent` | A text model with structured output, through `MEMORY_PROVIDER` and `MEMORY_MODEL` |
+| `agent` | A text model, through `MEMORY_PROVIDER` and `MEMORY_MODEL` |
 | `classification` | A classification model, through `MEMORY_CLASSIFICATION_PROVIDER` and `MEMORY_CLASSIFICATION_MODEL` |
 
-It catches most permissions, not all, and small models catch fewer. Keep real actions such as payments behind the SDK's tool approvals. The question lives in `prompts.memory.classification.permission.*`, and the agent guard reuses it.
+The guard catches most permissions, not all. Keep real actions, such as payments, behind the SDK's tool approvals.
 
 ## Duplicates and corrections
 
-Before a fact is stored, the writer looks for up to 5 live memories with the same owner and subject, and a cosine similarity of 0.75 or more. When it finds some, it asks for one decision:
+Before a fact is stored, the writer looks for up to 5 live memories with the same owner and subject, and a cosine similarity of 0.75 or more. If it finds some, it asks a decider:
 
 | Decision | Effect |
 |---|---|
 | `noop` | A memory already says it. Nothing is stored |
-| `update` | The fact changes one of the candidates. The new row is stored and the old one gets `superseded_by` |
+| `update` | The fact changes one memory. The new row is stored, and the old one gets `superseded_by` |
 | `add` | The fact is about something else. It is stored |
 
-The decision comes from one of two deciders, set with `MEMORY_DECIDER`:
+| `MEMORY_DECIDER` | Asks |
+|---|---|
+| `agent` (default) | A text model with structured output, through `MEMORY_PROVIDER` and `MEMORY_MODEL` |
+| `classification` | A classification model through the SDK's `Classification`: TypeSafe, OpenAI, OpenRouter, or an OpenAI-compatible server with a `decisions` endpoint |
 
-| Decider | Asks | Providers |
-|---|---|---|
-| `agent` (default) | A text model with structured output, through `MEMORY_PROVIDER` and `MEMORY_MODEL` | Any text provider, Ollama included |
-| `classification` | A classification model through the SDK's `Classification`, as a choice between `add`, `noop` and one `replace_{id}` per candidate | TypeSafe SystemOne (`jev-latest`), OpenAI, OpenRouter, and OpenAI-compatible servers with a `decisions` endpoint |
+You can also bind your own `Eznix86\AI\Memory\Contracts\DecidesDuplicates`.
 
-You can bind your own `Eznix86\AI\Memory\Contracts\DecidesDuplicates` too.
+When a context holds 500 live memories, the weakest ones are archived before a new one is added. Memories a person wrote or confirmed are never archived this way.
 
-When a context holds more than 500 live memories, the weakest ones are archived before a new one is added. Memories a person wrote or confirmed are kept.
-
-## Automatic extraction
-
-After every prompt to an agent that implements `HasMemory`, an `ExtractMemories` job is queued with the user message and the reply. A small agent picks out at most 3 facts the user stated or confirmed, and ignores text quoted from emails, documents or customer messages. Before a fact reaches the writer, `Grounding` checks that at least half of its words come from the user's own words. Quoted lines (`>`), quoted strings, code blocks and the assistant reply do not count. So a fact the model took from a pasted email or from its own answer is dropped, even when the model ignored its instructions. Each fact that passes goes through the writer, with `extraction` as its source. Turn extraction off with `MEMORY_EXTRACTION=false`.
-
-The extractor, decider and consolidator work with any provider and model you set. Very small models make more mistakes on these tasks, so check the model you choose with the live test suite (see [Testing](#testing)).
-
-## Decay
+## Decay and consolidation
 
 Every memory has a strength from 0 to 1:
 
@@ -211,42 +232,37 @@ strength = min(1, importance × 0.5^(days unused / half-life) × (1 + 0.1 × min
 | `lesson` | 90 days |
 | `context` | 21 days |
 
-Loading and recall use the strongest memories first, and each use makes a memory stronger again.
+Each time a memory is loaded or recalled, it gets stronger again.
 
-## Consolidation
-
-Schedule the consolidation once a week:
-
-```php
-Schedule::command('memory:consolidate')->weeklyOn(0, '03:00');
-```
-
-It queues one `ConsolidateMemories` job per tenant. The job merges every subject with 6 or more live memories into one note written by a small agent, and the originals get `superseded_by`. Then it archives the memories whose strength fell below 0.05, except the ones a person wrote or confirmed. Pass `--sync` to run it at once.
-
-Nothing the agent does deletes a row. Superseded and archived memories stay as history, and only `Memories::delete()` and `Memories::purge()` remove rows.
+`memory:consolidate` queues one job per tenant. The job merges each subject that has 6 or more live memories into one note written by a model, and the originals get `superseded_by`. Then it archives the memories whose strength fell below 0.05, except the ones a person wrote or confirmed. If the merged note is rejected, the originals stay and a warning is logged. Pass `--sync` to run it at once.
 
 ## Managing memories
 
-The `Memories` facade is the API for a memory page in your application. The package ships no routes and no UI.
+The `Memories` facade is the API for a memory page in your application:
 
 ```php
+use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\Facades\Memories;
 
 Memories::list($context, kind: MemoryKind::Process, subject: 'customer:42', search: 'refund');
-Memories::add($context, $user, ['kind' => 'process', 'content' => 'Deploys happen on Tuesday.']);
+
+$memory = Memories::add($context, $user, ['kind' => 'process', 'content' => 'Deploys happen on Tuesday.'])->memory;
+
 Memories::edit($memory, 'Deploys happen on Thursday.', $user);
 Memories::delete($memory);
 Memories::export($user);
 Memories::purge($workspace, 'customer:42');
 ```
 
-`add` and `edit` mark the memory as written or confirmed by that person. `delete` removes the row. `export` returns all of the user's memories, archived and superseded ones included. `purge` removes every memory about a subject in the tenant, for privacy requests.
+`add` and `edit` mark the memory as written or confirmed by that person, and go through the same checks as the agent. `export` returns all of a user's memories, archived and superseded ones included. `purge` removes every memory about a subject in the tenant, for privacy requests.
 
-`MemoryPolicy` lets a user update and delete their own memories. Shared memories need a tenant administrator. Extend the policy to say who that is:
+`MemoryPolicy` lets users update and delete their own memories. Shared memories need a tenant administrator. Extend the policy to say who that is:
 
 ```php
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Policies\MemoryPolicy;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 
 class AgentMemoryPolicy extends MemoryPolicy
 {
@@ -259,100 +275,77 @@ class AgentMemoryPolicy extends MemoryPolicy
 Gate::policy(AgentMemory::class, AgentMemoryPolicy::class);
 ```
 
+## Models
+
+Nothing in the package depends on a specific model. Set the provider and model of the memory agents (decider, extractor, consolidator, agent permission guard) with `MEMORY_PROVIDER` and `MEMORY_MODEL`, or leave them empty to use the defaults of `config/ai.php`. The text model needs structured output.
+
+These are small tasks, but very small models make more mistakes on them. Check the model you choose with the live test suite (see [Contributing](#contributing)). Raise `MEMORY_TIMEOUT` for slow local models.
+
 ## Languages
 
-The package works in any language, with four things to set for languages other than English:
+The package works in any language. For languages other than English, check four things:
 
 | What | Where | Default |
 |---|---|---|
-| Prompts the model reads | Blade views in `prompts.memory.*`, see [Prompt templates](#prompt-templates) | English. The prompts tell the model to keep facts in the user's language, so English prompts work for other languages too |
-| Short texts the model reads: tool results, rejection reasons, schema descriptions, classification options | `lang/vendor/memory/{locale}/*.php`, published with `--tag=memory-lang`. They follow the app locale | English |
-| Keyword search | `MEMORY_FULLTEXT_LANGUAGE`, a PostgreSQL text search configuration such as `french`. Use `simple` for mixed languages. PostgreSQL does not split Chinese, Japanese or Korean into words: there, recall relies on the meaning search, or on an extension such as zhparser | `english` |
-| Instruction and password patterns | `instruction_patterns` and `password_patterns` in `config/memory.php`. Add the patterns of your users' languages, or use the permission guard, which works in any language | English |
+| Prompts | Blade views, see [Customizing prompts and messages](#customizing-prompts-and-messages). They tell the model to keep facts in the user's language, so they also work for other languages | English |
+| Short messages: tool results, rejection reasons, schema descriptions | Lang files. They follow the app locale | English |
+| Keyword search | `MEMORY_FULLTEXT_LANGUAGE`: a PostgreSQL text search configuration such as `french`, or `simple` for several languages. PostgreSQL does not split Chinese, Japanese or Korean into words, so there recall relies on the meaning search, or on an extension such as zhparser | `english` |
+| Instruction and password patterns | `instruction_patterns` and `password_patterns` in `config/memory.php`. Add your users' languages, or use the permission guard, which works in any language | English |
 
-The grounding check of extraction compares pairs of characters, so it works with and without spaces between words. Recall by meaning depends on your embedding model: use a multilingual one for users who do not write in English.
+The extraction check compares Chinese and Japanese text character by character, and other text by pairs of letters, so it works with and without spaces. Recall by meaning depends on your embedding model: pick a multilingual one if your users do not write in English.
 
-## Prompt templates
+## Customizing prompts and messages
 
-The text the agent sees comes from Blade views in `resources/views/prompts/memory`. To change one, put a file with the same name in your application's `resources/views/prompts/memory`, or publish them all with `--tag=memory-views`.
+```bash
+php artisan vendor:publish --tag=memory-config   # config/memory.php
+php artisan vendor:publish --tag=memory-views    # resources/views/prompts/memory
+php artisan vendor:publish --tag=memory-lang     # lang/vendor/memory
+```
+
+The prompts are Blade views. To change one, put a file with the same name in your application's `resources/views/prompts/memory`. Use `{!! !!}` for memory content: `{{ }}` escapes quotes, and the model would see `&quot;`.
 
 | View | Used for |
 |---|---|
-| `prompts.memory.instructions` | The memories added to the instructions |
-| `prompts.memory.memory` | One memory line |
-| `prompts.memory.tools.remember` | `Remember` description |
-| `prompts.memory.tools.forget` | `Forget` description |
-| `prompts.memory.tools.recall-memory` | `RecallMemory` description |
-| `prompts.memory.tools.recall-memory-results` | `RecallMemory` results |
-| `prompts.memory.skill.description` | `MemorySkill` description |
-| `prompts.memory.skill.instructions` | `MemorySkill` instructions |
-| `prompts.memory.agents.decider`, `decider-prompt` | Duplicate decider instructions and prompt |
-| `prompts.memory.classification.decider` | Classification decider question |
-| `prompts.memory.classification.permission.question`, `true`, `false` | Permission guard question and its two answers |
-| `prompts.memory.agents.extractor`, `extractor-prompt` | Extraction instructions and prompt |
-| `prompts.memory.agents.consolidator`, `consolidator-prompt` | Consolidation instructions and prompt |
-| `prompts.memory.agents.permission`, `permission-prompt` | Agent permission guard instructions and prompt |
-
-Use `{!! !!}` for memory content in your templates. `{{ }}` escapes quotes as HTML entities, and the model then sees `&quot;`.
+| `prompts.memory.instructions`, `memory` | The memories added to the instructions, and one memory line |
+| `prompts.memory.tools.*` | The descriptions and results of `Remember`, `Forget` and `RecallMemory` |
+| `prompts.memory.skill.*` | The description and instructions of `MemorySkill` |
+| `prompts.memory.agents.decider`, `decider-prompt` | The duplicate decider |
+| `prompts.memory.agents.extractor`, `extractor-prompt` | Extraction |
+| `prompts.memory.agents.consolidator`, `consolidator-prompt` | Consolidation |
+| `prompts.memory.agents.permission`, `permission-prompt` | The agent permission guard |
+| `prompts.memory.classification.decider` | The classification decider question |
+| `prompts.memory.classification.permission.*` | The permission question and its two answers, used by both guards |
 
 ## Configuration
 
-| Option | Env | Default | Description |
-|---|---|---|---|
-| `table` | `MEMORY_TABLE` | `agent_memories` | Table name |
-| `dimensions` | `MEMORY_DIMENSIONS` | `1536` | Embedding vector dimensions. Must match your embedding model |
-| `loaded_limit` | `MEMORY_LOADED_LIMIT` | `30` | Memories added to the instructions |
-| `recall_limit` | `MEMORY_RECALL_LIMIT` | `8` | Memories returned by `RecallMemory` |
-| `recall_min_similarity` | `MEMORY_RECALL_MIN_SIMILARITY` | `0.3` | Minimum cosine similarity for `RecallMemory` |
-| `provider`, `model` | `MEMORY_PROVIDER`, `MEMORY_MODEL` | default | Provider and model of the decider, extractor and consolidator agents |
-| `timeout` | `MEMORY_TIMEOUT` | `120` | Seconds the memory agents and the classification decider may take |
-| `decider` | `MEMORY_DECIDER` | `agent` | `agent` or `classification` |
-| `permission_guard` | `MEMORY_PERMISSION_GUARD` | `none` | `none`, `agent` or `classification` |
-| `classification_provider`, `classification_model` | `MEMORY_CLASSIFICATION_PROVIDER`, `MEMORY_CLASSIFICATION_MODEL` | default | Provider and model of the classification decider and guard |
-| `fulltext_language` | `MEMORY_FULLTEXT_LANGUAGE` | `english` | PostgreSQL text search configuration of the keyword search |
-| `instruction_patterns`, `password_patterns` | none | English patterns | Regular expressions the writer rejects |
-| `queue` | `MEMORY_QUEUE` | default | Queue of the extraction and consolidation jobs |
-| `extraction` | `MEMORY_EXTRACTION` | `true` | Extract facts after each turn |
-| `duplicate_similarity` | `MEMORY_DUPLICATE_SIMILARITY` | `0.75` | Similarity from which a memory is a duplicate candidate |
-| `max_live` | `MEMORY_MAX_LIVE` | `500` | Live memories per context before the weakest are archived |
-| `consolidation_threshold` | `MEMORY_CONSOLIDATION_THRESHOLD` | `6` | Memories on one subject before they are merged |
-| `archive_below` | `MEMORY_ARCHIVE_BELOW` | `0.05` | Strength under which consolidation archives a memory |
+Every option is documented in `config/memory.php`. The ones you are most likely to set:
 
-## Testing
+| Env | Default | What it does |
+|---|---|---|
+| `MEMORY_DIMENSIONS` | `1536` | Embedding size. Must match your embedding model |
+| `MEMORY_PROVIDER`, `MEMORY_MODEL` | `config/ai.php` defaults | Model of the memory agents |
+| `MEMORY_TIMEOUT` | `120` | Seconds one answer of a memory agent may take |
+| `MEMORY_DECIDER` | `agent` | `agent` or `classification` |
+| `MEMORY_PERMISSION_GUARD` | `none` | `none`, `agent` or `classification` |
+| `MEMORY_CLASSIFICATION_PROVIDER`, `MEMORY_CLASSIFICATION_MODEL` | `config/ai.php` defaults | Model of the classification decider and guard |
+| `MEMORY_FULLTEXT_LANGUAGE` | `english` | PostgreSQL text search configuration |
+| `MEMORY_EXTRACTION` | `true` | Extract facts after each turn |
+| `MEMORY_QUEUE` | default queue | Queue of the extraction and consolidation jobs |
+| `MEMORY_LOADED_LIMIT` | `30` | Memories added to the instructions |
+| `MEMORY_MAX_LIVE` | `500` | Live memories per context before the weakest are archived |
 
-The package tests use [Pest](https://pestphp.com) and [Testcontainers](https://testcontainers.com) with PostgreSQL and pgvector, so Docker must be running, unless you point the tests at your own Postgres.
+## Testing your application
 
-```bash
-./vendor/bin/pest
-```
-
-To use a Postgres you already run instead of a container, set `MEMORY_TEST_DB_HOST` (and `MEMORY_TEST_DB_PORT`, `MEMORY_TEST_DB_DATABASE`, `MEMORY_TEST_DB_USERNAME`, `MEMORY_TEST_DB_PASSWORD` when they differ from `5432`, `memory_test`, `postgres` and an empty password). The database needs the pgvector extension available:
-
-```bash
-MEMORY_TEST_DB_HOST=127.0.0.1 ./vendor/bin/pest
-```
-
-You can put these variables in a `.env` file: copy `.env.example`, which lists every variable the tests read.
-
-The tests in `tests/Integration` call real models with real cases in English, French and Chinese. They are skipped unless `MEMORY_LIVE=1`. Set the models in `.env` (`MEMORY_LIVE_PROVIDER`, `MEMORY_LIVE_CHAT_MODEL`, `MEMORY_LIVE_EMBEDDINGS_*`, `MEMORY_PROVIDER`, `MEMORY_MODEL`) and run:
-
-```bash
-./vendor/bin/pest --testsuite=Integration
-```
-
-Cases marked `(holdout)` were not used to write the prompts, so they show how a model and the prompts do on text they were not tuned for.
-
-In your own tests, `Memories::fake()` fakes everything the package calls:
+`Memories::fake()` fakes everything the package calls:
 
 - embeddings, with word-count vectors, so texts that share words are similar
-- the decider, which answers `add`, and the classification, which answers `add`
+- the decider and the classification, which answer `add`
 - the extractor, which finds no facts
 - the consolidator, which answers "Merged note."
-- the agent permission guard, which answers that no fact grants a permission
-
-Fake one of them again to test a decision, for example `MemoryDecider::fake([['decision' => 'noop', 'replace_id' => null]])`.
+- the agent permission guard, which finds no permission
 
 ```php
+use Eznix86\AI\Memory\Agents\MemoryDecider;
 use Eznix86\AI\Memory\Facades\Memories;
 
 test('the agent sees what it remembers', function () {
@@ -364,8 +357,46 @@ test('the agent sees what it remembers', function () {
 
     (new AssistantAgent($context))->prompt('Hi');
 });
+
+test('a repeated fact is not stored twice', function () {
+    Memories::fake();
+    MemoryDecider::fake([['decision' => 'noop', 'replace_id' => null]]);
+
+    // ...
+});
+```
+
+## Upgrading from 0.x
+
+1.0 replaces the 0.x API. The old `AgentMemory` facade with `store()` and `recall()`, the `StoreMemory` tool, the array context and the `memories` table are gone. `AgentMemory` is now the Eloquent model. Use a `MemoryContext`, the `Remember` and `RecallMemory` tools, and the `Memories` facade. The new `agent_memories` table is created by the migration. Old rows are not copied, and the old `memories` table is left in place for you to migrate or drop.
+
+## Contributing
+
+The tests need PostgreSQL with pgvector. Copy `.env.example` to `.env`: it lists every variable the tests read.
+
+```bash
+cp .env.example .env
+./vendor/bin/pest
+```
+
+With `MEMORY_TEST_DB_HOST` set, the tests use that database. Without it, they start a pgvector container with [Testcontainers](https://testcontainers.com), so Docker must be running.
+
+The tests in `tests/Integration` call real models with cases in English, French, Chinese and Japanese. They are skipped unless `MEMORY_LIVE=1`. Set the models in `.env` and run:
+
+```bash
+./vendor/bin/pest --testsuite=Integration
+```
+
+Cases marked `(holdout)` were not used to write the prompts. They show how a model and the prompts do on text they were not tuned for.
+
+Before a pull request, run the checks:
+
+```bash
+./vendor/bin/pint
+./vendor/bin/rector
+./vendor/bin/phpstan analyse
 ```
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
