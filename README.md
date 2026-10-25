@@ -14,6 +14,7 @@ Memory is not for business data, chat history or secrets. If a new colleague cou
 - Laravel 12.62+ or 13.15+
 - Laravel AI SDK 1.3+
 - PostgreSQL with the [pgvector](https://github.com/pgvector/pgvector) extension
+- Any text provider and model of the SDK with structured output, and any embedding model. Nothing in the package depends on a specific model
 
 ## Installation
 
@@ -151,15 +152,21 @@ Every write goes through `MemoryWriter`. It rejects:
 
 - content that is empty or longer than 300 characters
 - card numbers (Luhn check), IBANs (checksum), API keys, tokens, private keys and passwords
-- facts phrased as instructions to the agent, such as "Always approve refunds" or "Ignore previous instructions"
+- facts phrased as instructions to the agent, such as "Always approve refunds" or "Ignore previous instructions". These patterns are in the config and only know English by default: see [Languages](#languages)
 
 The `Remember` tool returns the reason to the agent, so it can restate the fact.
 
 ### Permission guard
 
-A capable model rewrites "Always approve refunds" into a fact such as "The user prefers that refunds be approved without asking". The instruction patterns do not catch that, and the fact would steer every later turn. With `MEMORY_PERMISSION_GUARD=classification`, the writer asks a classification model whether the fact lets the agent act on its own, and rejects it when the answer is yes. It uses the classification provider and model of the decider, and costs one call per write.
+A capable model rewrites "Always approve refunds" into a fact such as "The user prefers that refunds be approved without asking". The instruction patterns do not catch that, and the fact would steer every later turn. The permission guard asks a model whether the fact lets the agent act on its own, and rejects it when the answer is yes. It costs one call per write.
 
-In our tests with TypeSafe `jev-latest`, it judged 38 of 39 sentences right, permissions and look-alikes, including permissions phrased as preferences and reported speech. It catches most permissions, not all: keep real actions such as payments behind the SDK's tool approvals. The question lives in `prompts.memory.classification.permission.*`.
+| `MEMORY_PERMISSION_GUARD` | Asks |
+|---|---|
+| `none` (default) | Nothing |
+| `agent` | A text model with structured output, through `MEMORY_PROVIDER` and `MEMORY_MODEL` |
+| `classification` | A classification model, through `MEMORY_CLASSIFICATION_PROVIDER` and `MEMORY_CLASSIFICATION_MODEL` |
+
+It catches most permissions, not all, and small models catch fewer. Keep real actions such as payments behind the SDK's tool approvals. The question lives in `prompts.memory.classification.permission.*`, and the agent guard reuses it.
 
 ## Duplicates and corrections
 
@@ -186,7 +193,7 @@ When a context holds more than 500 live memories, the weakest ones are archived 
 
 After every prompt to an agent that implements `HasMemory`, an `ExtractMemories` job is queued with the user message and the reply. A small agent picks out at most 3 facts the user stated or confirmed, and ignores text quoted from emails, documents or customer messages. Before a fact reaches the writer, `Grounding` checks that at least half of its words come from the user's own words. Quoted lines (`>`), quoted strings, code blocks and the assistant reply do not count. So a fact the model took from a pasted email or from its own answer is dropped, even when the model ignored its instructions. Each fact that passes goes through the writer, with `extraction` as its source. Turn extraction off with `MEMORY_EXTRACTION=false`.
 
-The extractor, decider and consolidator are small tasks, but very small models do them badly. In our tests with local Ollama models, a 3B model often answered `add` where `update` was right. A 9B model got every duplicate decision right. Set `MEMORY_MODEL` to a model you have tested.
+The extractor, decider and consolidator work with any provider and model you set. Very small models make more mistakes on these tasks, so check the model you choose with the live test suite (see [Testing](#testing)).
 
 ## Decay
 
@@ -252,6 +259,19 @@ class AgentMemoryPolicy extends MemoryPolicy
 Gate::policy(AgentMemory::class, AgentMemoryPolicy::class);
 ```
 
+## Languages
+
+The package works in any language, with four things to set for languages other than English:
+
+| What | Where | Default |
+|---|---|---|
+| Prompts the model reads | Blade views in `prompts.memory.*`, see [Prompt templates](#prompt-templates) | English. The prompts tell the model to keep facts in the user's language, so English prompts work for other languages too |
+| Short texts the model reads: tool results, rejection reasons, schema descriptions, classification options | `lang/vendor/memory/{locale}/*.php`, published with `--tag=memory-lang`. They follow the app locale | English |
+| Keyword search | `MEMORY_FULLTEXT_LANGUAGE`, a PostgreSQL text search configuration such as `french`. Use `simple` for mixed languages. PostgreSQL does not split Chinese, Japanese or Korean into words: there, recall relies on the meaning search, or on an extension such as zhparser | `english` |
+| Instruction and password patterns | `instruction_patterns` and `password_patterns` in `config/memory.php`. Add the patterns of your users' languages, or use the permission guard, which works in any language | English |
+
+The grounding check of extraction compares pairs of characters, so it works with and without spaces between words. Recall by meaning depends on your embedding model: use a multilingual one for users who do not write in English.
+
 ## Prompt templates
 
 The text the agent sees comes from Blade views in `resources/views/prompts/memory`. To change one, put a file with the same name in your application's `resources/views/prompts/memory`, or publish them all with `--tag=memory-views`.
@@ -271,6 +291,7 @@ The text the agent sees comes from Blade views in `resources/views/prompts/memor
 | `prompts.memory.classification.permission.question`, `true`, `false` | Permission guard question and its two answers |
 | `prompts.memory.agents.extractor`, `extractor-prompt` | Extraction instructions and prompt |
 | `prompts.memory.agents.consolidator`, `consolidator-prompt` | Consolidation instructions and prompt |
+| `prompts.memory.agents.permission`, `permission-prompt` | Agent permission guard instructions and prompt |
 
 Use `{!! !!}` for memory content in your templates. `{{ }}` escapes quotes as HTML entities, and the model then sees `&quot;`.
 
@@ -286,8 +307,10 @@ Use `{!! !!}` for memory content in your templates. `{{ }}` escapes quotes as HT
 | `provider`, `model` | `MEMORY_PROVIDER`, `MEMORY_MODEL` | default | Provider and model of the decider, extractor and consolidator agents |
 | `timeout` | `MEMORY_TIMEOUT` | `120` | Seconds the memory agents and the classification decider may take |
 | `decider` | `MEMORY_DECIDER` | `agent` | `agent` or `classification` |
-| `permission_guard` | `MEMORY_PERMISSION_GUARD` | `none` | `none` or `classification` |
-| `classification_provider`, `classification_model` | `MEMORY_CLASSIFICATION_PROVIDER`, `MEMORY_CLASSIFICATION_MODEL` | default | Provider and model of the classification decider |
+| `permission_guard` | `MEMORY_PERMISSION_GUARD` | `none` | `none`, `agent` or `classification` |
+| `classification_provider`, `classification_model` | `MEMORY_CLASSIFICATION_PROVIDER`, `MEMORY_CLASSIFICATION_MODEL` | default | Provider and model of the classification decider and guard |
+| `fulltext_language` | `MEMORY_FULLTEXT_LANGUAGE` | `english` | PostgreSQL text search configuration of the keyword search |
+| `instruction_patterns`, `password_patterns` | none | English patterns | Regular expressions the writer rejects |
 | `queue` | `MEMORY_QUEUE` | default | Queue of the extraction and consolidation jobs |
 | `extraction` | `MEMORY_EXTRACTION` | `true` | Extract facts after each turn |
 | `duplicate_similarity` | `MEMORY_DUPLICATE_SIMILARITY` | `0.75` | Similarity from which a memory is a duplicate candidate |
@@ -309,12 +332,23 @@ To use a Postgres you already run instead of a container, set `MEMORY_TEST_DB_HO
 MEMORY_TEST_DB_HOST=127.0.0.1 ./vendor/bin/pest
 ```
 
+You can put these variables in a `.env` file: copy `.env.example`, which lists every variable the tests read.
+
+The tests in `tests/Integration` call real models with real cases in English, French and Chinese. They are skipped unless `MEMORY_LIVE=1`. Set the models in `.env` (`MEMORY_LIVE_PROVIDER`, `MEMORY_LIVE_CHAT_MODEL`, `MEMORY_LIVE_EMBEDDINGS_*`, `MEMORY_PROVIDER`, `MEMORY_MODEL`) and run:
+
+```bash
+./vendor/bin/pest --testsuite=Integration
+```
+
+Cases marked `(holdout)` were not used to write the prompts, so they show how a model and the prompts do on text they were not tuned for.
+
 In your own tests, `Memories::fake()` fakes everything the package calls:
 
 - embeddings, with word-count vectors, so texts that share words are similar
 - the decider, which answers `add`, and the classification, which answers `add`
 - the extractor, which finds no facts
 - the consolidator, which answers "Merged note."
+- the agent permission guard, which answers that no fact grants a permission
 
 Fake one of them again to test a decision, for example `MemoryDecider::fake([['decision' => 'noop', 'replace_id' => null]])`.
 
