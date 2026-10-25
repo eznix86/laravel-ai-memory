@@ -20,10 +20,27 @@ abstract class TestCase extends BaseTestCase
 
     protected static ?StartedGenericContainer $postgresContainer = null;
 
+    /**
+     * @var array{host: string, port: int, database: string, username: string, password: string}
+     */
+    protected static array $database;
+
     #[\Override]
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
+
+        if (getenv('MEMORY_TEST_DB_HOST')) {
+            static::$database = [
+                'host' => getenv('MEMORY_TEST_DB_HOST'),
+                'port' => (int) (getenv('MEMORY_TEST_DB_PORT') ?: 5432),
+                'database' => getenv('MEMORY_TEST_DB_DATABASE') ?: 'memory_test',
+                'username' => getenv('MEMORY_TEST_DB_USERNAME') ?: 'postgres',
+                'password' => (string) getenv('MEMORY_TEST_DB_PASSWORD'),
+            ];
+
+            return;
+        }
 
         $container = new GenericContainer('pgvector/pgvector:pg18-trixie');
         $container
@@ -36,6 +53,14 @@ abstract class TestCase extends BaseTestCase
             ->withWait(new WaitForExec(['pg_isready', '-h', '127.0.0.1', '-U', 'test_user']));
 
         static::$postgresContainer = $container->start();
+
+        static::$database = [
+            'host' => static::$postgresContainer->getHost(),
+            'port' => static::$postgresContainer->getMappedPort(5432),
+            'database' => 'memory_test',
+            'username' => 'test_user',
+            'password' => 'test_password',
+        ];
     }
 
     #[\Override]
@@ -71,11 +96,7 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('database.default', 'testing');
         $app['config']->set('database.connections.testing', [
             'driver' => 'pgsql',
-            'host' => static::$postgresContainer->getHost(),
-            'port' => static::$postgresContainer->getMappedPort(5432),
-            'database' => 'memory_test',
-            'username' => 'test_user',
-            'password' => 'test_password',
+            ...static::$database,
             'charset' => 'utf8',
             'prefix' => '',
             'schema' => 'public',

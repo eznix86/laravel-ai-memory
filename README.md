@@ -289,10 +289,16 @@ Use `{!! !!}` for memory content in your templates. `{{ }}` escapes quotes as HT
 
 ## Testing
 
-The package tests use [Pest](https://pestphp.com) and [Testcontainers](https://testcontainers.com) with PostgreSQL and pgvector, so Docker must be running.
+The package tests use [Pest](https://pestphp.com) and [Testcontainers](https://testcontainers.com) with PostgreSQL and pgvector, so Docker must be running, unless you point the tests at your own Postgres.
 
 ```bash
 ./vendor/bin/pest
+```
+
+To use a Postgres you already run instead of a container, set `MEMORY_TEST_DB_HOST` (and `MEMORY_TEST_DB_PORT`, `MEMORY_TEST_DB_DATABASE`, `MEMORY_TEST_DB_USERNAME`, `MEMORY_TEST_DB_PASSWORD` when they differ from `5432`, `memory_test`, `postgres` and an empty password). The database needs the pgvector extension available:
+
+```bash
+MEMORY_TEST_DB_HOST=127.0.0.1 ./vendor/bin/pest
 ```
 
 In your own tests, `Memories::fake()` fakes everything the package calls:
