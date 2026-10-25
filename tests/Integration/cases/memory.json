@@ -353,5 +353,815 @@
             ],
             "forgotten": "refund"
         }
+    ],
+    "loading_memories": [
+        {
+            "kind": "customer_note",
+            "subject": "customer:1",
+            "content": "Customer 1 wants invoices in Italian.",
+            "importance": 0.7,
+            "days_unused": 5
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:1",
+            "content": "Customer 1 pays by credit card.",
+            "importance": 0.72,
+            "days_unused": 2
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:2",
+            "content": "Customer 2 wants invoices in Spanish.",
+            "importance": 0.62,
+            "days_unused": 18
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:2",
+            "content": "Customer 2 pays by direct debit.",
+            "importance": 0.63,
+            "days_unused": 12
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:3",
+            "content": "Customer 3 wants invoices in Dutch.",
+            "importance": 0.78,
+            "days_unused": 2
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:3",
+            "content": "Customer 3 pays by cheque.",
+            "importance": 0.89,
+            "days_unused": 17
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:4",
+            "content": "Customer 4 wants invoices in Portuguese.",
+            "importance": 0.66,
+            "days_unused": 2
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:4",
+            "content": "Customer 4 pays by bank transfer.",
+            "importance": 0.62,
+            "days_unused": 14
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:5",
+            "content": "Customer 5 wants invoices in French.",
+            "importance": 0.73,
+            "days_unused": 3
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:5",
+            "content": "Customer 5 pays by credit card.",
+            "importance": 0.67,
+            "days_unused": 3
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:6",
+            "content": "Customer 6 wants invoices in Italian.",
+            "importance": 0.77,
+            "days_unused": 14
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:6",
+            "content": "Customer 6 pays by direct debit.",
+            "importance": 0.61,
+            "days_unused": 19
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:7",
+            "content": "Customer 7 wants invoices in Spanish.",
+            "importance": 0.63,
+            "days_unused": 8
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:7",
+            "content": "Customer 7 pays by cheque.",
+            "importance": 0.8,
+            "days_unused": 19
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:8",
+            "content": "Customer 8 wants invoices in Dutch.",
+            "importance": 0.9,
+            "days_unused": 2
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:8",
+            "content": "Customer 8 pays by bank transfer.",
+            "importance": 0.78,
+            "days_unused": 19
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:9",
+            "content": "Customer 9 wants invoices in Portuguese.",
+            "importance": 0.72,
+            "days_unused": 2
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:9",
+            "content": "Customer 9 pays by credit card.",
+            "importance": 0.67,
+            "days_unused": 2
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:10",
+            "content": "Customer 10 wants invoices in French.",
+            "importance": 0.77,
+            "days_unused": 5
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:10",
+            "content": "Customer 10 pays by direct debit.",
+            "importance": 0.69,
+            "days_unused": 14
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:11",
+            "content": "Customer 11 wants invoices in Italian.",
+            "importance": 0.64,
+            "days_unused": 18
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:11",
+            "content": "Customer 11 pays by cheque.",
+            "importance": 0.63,
+            "days_unused": 19
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:13",
+            "content": "Customer 13 wants invoices in Dutch.",
+            "importance": 0.69,
+            "days_unused": 18
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:13",
+            "content": "Customer 13 pays by credit card.",
+            "importance": 0.86,
+            "days_unused": 6
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:14",
+            "content": "Customer 14 wants invoices in Portuguese.",
+            "importance": 0.63,
+            "days_unused": 19
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:14",
+            "content": "Customer 14 pays by direct debit.",
+            "importance": 0.78,
+            "days_unused": 7
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:15",
+            "content": "Customer 15 wants invoices in French.",
+            "importance": 0.71,
+            "days_unused": 4
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:15",
+            "content": "Customer 15 pays by cheque.",
+            "importance": 0.77,
+            "days_unused": 3
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:16",
+            "content": "Customer 16 wants invoices in Italian.",
+            "importance": 0.78,
+            "days_unused": 2
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:16",
+            "content": "Customer 16 pays by bank transfer.",
+            "importance": 0.79,
+            "days_unused": 7
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:17",
+            "content": "Customer 17 wants invoices in Spanish.",
+            "importance": 0.75,
+            "days_unused": 18
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:17",
+            "content": "Customer 17 pays by credit card.",
+            "importance": 0.73,
+            "days_unused": 11
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:18",
+            "content": "Customer 18 wants invoices in Dutch.",
+            "importance": 0.74,
+            "days_unused": 19
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:18",
+            "content": "Customer 18 pays by direct debit.",
+            "importance": 0.89,
+            "days_unused": 15
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:19",
+            "content": "Customer 19 wants invoices in Portuguese.",
+            "importance": 0.71,
+            "days_unused": 10
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:19",
+            "content": "Customer 19 pays by cheque.",
+            "importance": 0.67,
+            "days_unused": 6
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:20",
+            "content": "Customer 20 wants invoices in French.",
+            "importance": 0.82,
+            "days_unused": 8
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:20",
+            "content": "Customer 20 pays by bank transfer.",
+            "importance": 0.62,
+            "days_unused": 19
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:21",
+            "content": "Customer 21 wants invoices in Italian.",
+            "importance": 0.69,
+            "days_unused": 17
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:21",
+            "content": "Customer 21 pays by credit card.",
+            "importance": 0.75,
+            "days_unused": 11
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:22",
+            "content": "Customer 22 wants invoices in Spanish.",
+            "importance": 0.83,
+            "days_unused": 15
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:22",
+            "content": "Customer 22 pays by direct debit.",
+            "importance": 0.69,
+            "days_unused": 20
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:24",
+            "content": "Customer 24 wants invoices in Portuguese.",
+            "importance": 0.62,
+            "days_unused": 4
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:24",
+            "content": "Customer 24 pays by bank transfer.",
+            "importance": 0.76,
+            "days_unused": 14
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:25",
+            "content": "Customer 25 wants invoices in French.",
+            "importance": 0.65,
+            "days_unused": 11
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:25",
+            "content": "Customer 25 pays by credit card.",
+            "importance": 0.64,
+            "days_unused": 16
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:26",
+            "content": "Customer 26 wants invoices in Italian.",
+            "importance": 0.73,
+            "days_unused": 2
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:26",
+            "content": "Customer 26 pays by direct debit.",
+            "importance": 0.9,
+            "days_unused": 3
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:27",
+            "content": "Customer 27 wants invoices in Spanish.",
+            "importance": 0.84,
+            "days_unused": 18
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:27",
+            "content": "Customer 27 pays by cheque.",
+            "importance": 0.78,
+            "days_unused": 11
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:28",
+            "content": "Customer 28 wants invoices in Dutch.",
+            "importance": 0.7,
+            "days_unused": 12
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:28",
+            "content": "Customer 28 pays by bank transfer.",
+            "importance": 0.79,
+            "days_unused": 16
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:29",
+            "content": "Customer 29 wants invoices in Portuguese.",
+            "importance": 0.78,
+            "days_unused": 15
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:29",
+            "content": "Customer 29 pays by credit card.",
+            "importance": 0.62,
+            "days_unused": 3
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:30",
+            "content": "Customer 30 wants invoices in French.",
+            "importance": 0.9,
+            "days_unused": 9
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:30",
+            "content": "Customer 30 pays by direct debit.",
+            "importance": 0.75,
+            "days_unused": 3
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:32",
+            "content": "Customer 32 wants invoices in Spanish.",
+            "importance": 0.61,
+            "days_unused": 10
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:32",
+            "content": "Customer 32 pays by bank transfer.",
+            "importance": 0.8,
+            "days_unused": 19
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:33",
+            "content": "Customer 33 wants invoices in Dutch.",
+            "importance": 0.81,
+            "days_unused": 15
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:33",
+            "content": "Customer 33 pays by credit card.",
+            "importance": 0.69,
+            "days_unused": 13
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:34",
+            "content": "Customer 34 wants invoices in Portuguese.",
+            "importance": 0.88,
+            "days_unused": 12
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:34",
+            "content": "Customer 34 pays by direct debit.",
+            "importance": 0.6,
+            "days_unused": 15
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:35",
+            "content": "Customer 35 wants invoices in French.",
+            "importance": 0.71,
+            "days_unused": 6
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:35",
+            "content": "Customer 35 pays by cheque.",
+            "importance": 0.79,
+            "days_unused": 4
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:36",
+            "content": "Customer 36 wants invoices in Italian.",
+            "importance": 0.75,
+            "days_unused": 2
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:36",
+            "content": "Customer 36 pays by bank transfer.",
+            "importance": 0.66,
+            "days_unused": 10
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:37",
+            "content": "Customer 37 wants invoices in Spanish.",
+            "importance": 0.64,
+            "days_unused": 8
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:37",
+            "content": "Customer 37 pays by credit card.",
+            "importance": 0.72,
+            "days_unused": 13
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:38",
+            "content": "Customer 38 wants invoices in Dutch.",
+            "importance": 0.89,
+            "days_unused": 16
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:38",
+            "content": "Customer 38 pays by direct debit.",
+            "importance": 0.62,
+            "days_unused": 6
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:39",
+            "content": "Customer 39 wants invoices in Portuguese.",
+            "importance": 0.74,
+            "days_unused": 13
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:39",
+            "content": "Customer 39 pays by cheque.",
+            "importance": 0.77,
+            "days_unused": 9
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:40",
+            "content": "Customer 40 wants invoices in French.",
+            "importance": 0.88,
+            "days_unused": 5
+        },
+        {
+            "kind": "customer_note",
+            "subject": "customer:40",
+            "content": "Customer 40 pays by bank transfer.",
+            "importance": 0.86,
+            "days_unused": 14
+        },
+        {
+            "kind": "process",
+            "subject": "project:atlas",
+            "content": "Project Atlas ships a release every 2 weeks.",
+            "importance": 0.7,
+            "days_unused": 9
+        },
+        {
+            "kind": "lesson",
+            "subject": "project:atlas",
+            "content": "Project Atlas uses Laravel for its backend.",
+            "importance": 0.6,
+            "days_unused": 5
+        },
+        {
+            "kind": "process",
+            "subject": "project:borealis",
+            "content": "Project Borealis ships a release every 3 weeks.",
+            "importance": 0.7,
+            "days_unused": 7
+        },
+        {
+            "kind": "lesson",
+            "subject": "project:borealis",
+            "content": "Project Borealis uses Go for its backend.",
+            "importance": 0.6,
+            "days_unused": 6
+        },
+        {
+            "kind": "process",
+            "subject": "project:cobalt",
+            "content": "Project Cobalt ships a release every 4 weeks.",
+            "importance": 0.7,
+            "days_unused": 7
+        },
+        {
+            "kind": "lesson",
+            "subject": "project:cobalt",
+            "content": "Project Cobalt uses Rust for its backend.",
+            "importance": 0.6,
+            "days_unused": 4
+        },
+        {
+            "kind": "process",
+            "subject": "project:delta",
+            "content": "Project Delta ships a release every 2 weeks.",
+            "importance": 0.7,
+            "days_unused": 3
+        },
+        {
+            "kind": "lesson",
+            "subject": "project:delta",
+            "content": "Project Delta uses Python for its backend.",
+            "importance": 0.6,
+            "days_unused": 2
+        },
+        {
+            "kind": "process",
+            "subject": "project:ember",
+            "content": "Project Ember ships a release every 3 weeks.",
+            "importance": 0.7,
+            "days_unused": 3
+        },
+        {
+            "kind": "lesson",
+            "subject": "project:ember",
+            "content": "Project Ember uses Laravel for its backend.",
+            "importance": 0.6,
+            "days_unused": 3
+        },
+        {
+            "kind": "process",
+            "subject": "project:fjord",
+            "content": "Project Fjord ships a release every 4 weeks.",
+            "importance": 0.7,
+            "days_unused": 4
+        },
+        {
+            "kind": "lesson",
+            "subject": "project:fjord",
+            "content": "Project Fjord uses Go for its backend.",
+            "importance": 0.6,
+            "days_unused": 4
+        },
+        {
+            "kind": "process",
+            "subject": "project:granite",
+            "content": "Project Granite ships a release every 2 weeks.",
+            "importance": 0.7,
+            "days_unused": 1
+        },
+        {
+            "kind": "lesson",
+            "subject": "project:granite",
+            "content": "Project Granite uses Rust for its backend.",
+            "importance": 0.6,
+            "days_unused": 8
+        },
+        {
+            "kind": "process",
+            "subject": "project:halo",
+            "content": "Project Halo ships a release every 3 weeks.",
+            "importance": 0.7,
+            "days_unused": 10
+        },
+        {
+            "kind": "lesson",
+            "subject": "project:halo",
+            "content": "Project Halo uses Python for its backend.",
+            "importance": 0.6,
+            "days_unused": 3
+        },
+        {
+            "kind": "process",
+            "content": "Refunds above 500 francs need a manager.",
+            "importance": 0.8,
+            "days_unused": 5
+        },
+        {
+            "kind": "process",
+            "content": "Deploys happen on Thursdays.",
+            "importance": 0.8,
+            "days_unused": 5
+        },
+        {
+            "kind": "process",
+            "content": "The office closes at 18:00.",
+            "importance": 0.8,
+            "days_unused": 1
+        },
+        {
+            "kind": "process",
+            "content": "Support answers within one business day.",
+            "importance": 0.8,
+            "days_unused": 3
+        },
+        {
+            "kind": "process",
+            "content": "Contracts are signed in DocuSign.",
+            "importance": 0.8,
+            "days_unused": 7
+        },
+        {
+            "kind": "process",
+            "content": "Expenses are filed in the first week of the month.",
+            "importance": 0.8,
+            "days_unused": 9
+        }
+    ],
+    "loading": [
+        {
+            "id": "L1",
+            "target": {
+                "kind": "customer_note",
+                "subject": "customer:12",
+                "content": "Customer 12 wants every invoice to show the purchase order number."
+            },
+            "question": "Prepare the invoice for customer 12.",
+            "conversation": [
+                "Let us work on customer 12 today.",
+                "They called this morning.",
+                "Prepare their next invoice."
+            ]
+        },
+        {
+            "id": "L2",
+            "target": {
+                "kind": "customer_note",
+                "subject": "customer:23",
+                "content": "Customer 23 must never be called before 10 am."
+            },
+            "question": "Can I call customer 23 at 8 tomorrow?",
+            "conversation": [
+                "I have a call list with customer 23 on it.",
+                "It is for tomorrow morning.",
+                "Can I call them at 8?"
+            ]
+        },
+        {
+            "id": "L3",
+            "target": {
+                "kind": "customer_note",
+                "subject": "customer:31",
+                "content": "Customer 31 left a negative review last year after a late delivery."
+            },
+            "question": "Write a friendly follow-up email to customer 31.",
+            "conversation": [
+                "Customer 31 ordered again.",
+                "Their parcel left today.",
+                "Write them a friendly follow-up email."
+            ]
+        },
+        {
+            "id": "L4",
+            "target": {
+                "kind": "customer_note",
+                "subject": "project:cobalt",
+                "content": "Project Cobalt cannot deploy during the last week of the quarter."
+            },
+            "question": "Plan the next Cobalt deploy for the end of March.",
+            "conversation": [
+                "Cobalt has a new release ready.",
+                "The team wants it out soon.",
+                "Plan the deploy for the end of March."
+            ]
+        },
+        {
+            "id": "L5",
+            "target": {
+                "kind": "customer_note",
+                "subject": "project:ember",
+                "content": "Project Ember stores its secrets in Vault, not in env files."
+            },
+            "question": "Where should I put the new API key for Ember?",
+            "conversation": [
+                "I am adding a payment API to Ember.",
+                "I got the key from the provider.",
+                "Where should I put it?"
+            ]
+        },
+        {
+            "id": "L6",
+            "target": {
+                "kind": "lesson",
+                "subject": null,
+                "content": "The VAT number of the company changed in January."
+            },
+            "question": "Which VAT number goes on the new invoice template?",
+            "conversation": [
+                "I am updating the invoice template.",
+                "The footer has our company details.",
+                "Which VAT number goes there?"
+            ]
+        },
+        {
+            "id": "L7",
+            "target": {
+                "kind": "lesson",
+                "subject": null,
+                "content": "The Lausanne warehouse does not accept deliveries on Mondays."
+            },
+            "question": "Can the supplier deliver to Lausanne on Monday?",
+            "conversation": [
+                "A supplier asked about delivery dates.",
+                "It is for the Lausanne site.",
+                "Can they come on Monday?"
+            ]
+        },
+        {
+            "id": "L8",
+            "target": {
+                "kind": "lesson",
+                "subject": null,
+                "content": "Marc approves all marketing spend above 2000 francs."
+            },
+            "question": "Who approves a 3000 franc ad campaign?",
+            "conversation": [
+                "We want to run an ad campaign.",
+                "The budget is 3000 francs.",
+                "Who has to approve it?"
+            ]
+        },
+        {
+            "id": "L9",
+            "target": {
+                "kind": "lesson",
+                "subject": null,
+                "content": "The yearly audit is done by the firm Keller & Partner."
+            },
+            "question": "Which firm should I send the audit documents to?",
+            "conversation": [
+                "The audit season is starting.",
+                "I have the documents ready.",
+                "Which firm do I send them to?"
+            ]
+        },
+        {
+            "id": "L10",
+            "target": {
+                "kind": "lesson",
+                "subject": null,
+                "content": "The staging database is reset every Sunday night."
+            },
+            "question": "Why did my test data on staging disappear on Monday?",
+            "conversation": [
+                "I prepared test data on staging on Friday.",
+                "This morning it was gone.",
+                "Why did that happen?"
+            ]
+        }
     ]
 }
