@@ -105,9 +105,10 @@ return [
     | config/ai.php. The timeout is the number of seconds one answer may
     | take, for these agents and for the classification calls below. The
     | provider options are added to every request of these agents, keyed by
-    | provider, such as the OpenRouter routing below, given as JSON in env:
+    | provider, such as the OpenRouter options below. A temperature of 0
+    | gives steadier answers. Set them here, or as JSON in env:
     |
-    | AI_MEMORY_PROVIDER_OPTIONS='{"openrouter": {"provider": {"only": ["modelrun/fp4"]}}}'
+    | AI_MEMORY_PROVIDER_OPTIONS='{"openrouter": {"temperature": 0}}'
     |
     */
 
@@ -117,7 +118,12 @@ return [
 
     'timeout' => (int) env('AI_MEMORY_TIMEOUT', 120),
 
-    'provider_options' => json_decode((string) env('AI_MEMORY_PROVIDER_OPTIONS', '{}'), true) ?: [],
+    'provider_options' => json_decode((string) env('AI_MEMORY_PROVIDER_OPTIONS', '{}'), true) ?: [
+        // 'openrouter' => [
+        //     'temperature' => 0,
+        //     'provider' => ['only' => ['modelrun/fp4'], 'allow_fallbacks' => false],
+        // ],
+    ],
 
     /*
     |--------------------------------------------------------------------------
