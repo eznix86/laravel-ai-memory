@@ -37,7 +37,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->vectorIndex('embedding');
-            $table->fullText('content')->language('english');
+            $table->fullText('content')->language(config('memory.fulltext_language'));
             $table->index(['tenant_type', 'tenant_id', 'user_type', 'user_id', 'kind']);
             $table->index(['tenant_type', 'tenant_id', 'subject']);
         });

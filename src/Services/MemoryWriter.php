@@ -27,17 +27,6 @@ class MemoryWriter
     public const string SUBJECT_PATTERN = '/^[a-z][a-z0-9_]*:[A-Za-z0-9_.-]+$/';
 
     /**
-     * Patterns of facts phrased as instructions to the agent.
-     *
-     * @var list<string>
-     */
-    protected const array INSTRUCTION_PATTERNS = [
-        '/^\s*(always|never|ignore|disregard|forget|do not|don\'t|you must|you should|you are to|from now on)\b/i',
-        '/\b(ignore|disregard|override)\s+(all\s+|any\s+)?(previous|prior|above|earlier|your)\s+(instructions|rules|guidelines)\b/i',
-        '/\b(system prompt|new instructions)\b/i',
-    ];
-
-    /**
      * Patterns of API keys, tokens and private keys.
      *
      * @var list<string>
@@ -68,7 +57,7 @@ class MemoryWriter
         $personal = $fact['personal'] ?? $kind->isPersonal();
 
         if ($personal && ! $context->user instanceof Model) {
-            throw RejectedMemory::invalid('a personal memory needs a user in the context.');
+            throw RejectedMemory::invalid(__('memory::rejections.personal_without_user'));
         }
 
         $memory = new AgentMemory([
@@ -208,24 +197,24 @@ class MemoryWriter
      */
     public function guardContent(string $content): void
     {
-        if (Str::isMatch(self::INSTRUCTION_PATTERNS, $content)) {
+        if (Str::isMatch(config('memory.instruction_patterns'), $content)) {
             throw RejectedMemory::instruction();
         }
 
         if ($this->containsCardNumber($content)) {
-            throw RejectedMemory::secret('a card number');
+            throw RejectedMemory::secret('card');
         }
 
         if ($this->containsIban($content)) {
-            throw RejectedMemory::secret('an IBAN');
+            throw RejectedMemory::secret('iban');
         }
 
         if (Str::isMatch(self::API_KEY_PATTERNS, $content)) {
-            throw RejectedMemory::secret('an API key or token');
+            throw RejectedMemory::secret('api_key');
         }
 
-        if (Str::isMatch('/\b(password|passwd|pwd|passcode|pin code)\b\s*(is|:|=)\s*\S+/i', $content)) {
-            throw RejectedMemory::secret('a password');
+        if (Str::isMatch(config('memory.password_patterns'), $content)) {
+            throw RejectedMemory::secret('password');
         }
     }
 

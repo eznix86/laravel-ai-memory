@@ -58,3 +58,23 @@ test('archived memories are searched only when asked', function (): void {
     expect(recall($context, 'Globex cheque'))->toBe('No relevant memories found.')
         ->and(recall($context, 'Globex cheque', includeArchived: true))->toBe("#{$archived->id} [lesson] (archived) Globex used to pay by cheque.");
 });
+
+test('the keyword search stems words in the configured language', function (): void {
+    config(['memory.fulltext_language' => 'french', 'memory.recall_min_similarity' => 0.99]);
+    $context = new MemoryContext(workspace());
+    $memory = memory($context, 'Le client préfère les appels.');
+
+    $found = (new RecallMemory($context))->search('clients préférés');
+
+    expect($found->pluck('id')->all())->toBe([$memory->id]);
+});
+
+test('the keyword search misses another language stems', function (): void {
+    config(['memory.fulltext_language' => 'english', 'memory.recall_min_similarity' => 0.99]);
+    $context = new MemoryContext(workspace());
+    memory($context, 'Le client préfère les appels.');
+
+    $found = (new RecallMemory($context))->search('clients préférés');
+
+    expect($found)->toBeEmpty();
+});

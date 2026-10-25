@@ -40,12 +40,12 @@ class Forget implements Tool
             ->find((int) $request['memory_id']);
 
         if ($memory === null) {
-            return "No memory #{$request['memory_id']} to forget.";
+            return __('memory::tools.nothing_to_forget', ['id' => $request['memory_id']]);
         }
 
         $memory->update(['archived_at' => now()]);
 
-        return "Forgot #{$memory->id}.";
+        return __('memory::tools.forgot', ['id' => $memory->id]);
     }
 
     /**
@@ -57,7 +57,7 @@ class Forget implements Tool
     {
         return [
             'memory_id' => $schema->integer()
-                ->description('The id of the memory, as shown after the # sign.')
+                ->description(__('memory::schema.memory_id'))
                 ->required(),
         ];
     }

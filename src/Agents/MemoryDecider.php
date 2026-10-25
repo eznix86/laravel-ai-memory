@@ -28,7 +28,7 @@ class MemoryDecider implements Agent, HasStructuredOutput
                 ->required(),
             'replace_id' => $schema->integer()
                 ->nullable()
-                ->description('The id of the memory the new fact replaces, when the decision is update.')
+                ->description(__('memory::schema.replace_id'))
                 ->required(),
         ];
     }

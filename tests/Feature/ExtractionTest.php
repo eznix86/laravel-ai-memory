@@ -54,9 +54,9 @@ test('the extractor reads the user message and the reply, and its facts are stor
         ['kind' => 'preference', 'content' => 'The user prefers short answers.', 'subject' => null, 'importance' => 0.5],
     ]]]);
 
-    ExtractMemories::dispatchSync($workspace, $user, 'conv-1', 'We deploy on Tuesdays. Keep it short.', 'Noted.');
+    ExtractMemories::dispatchSync($workspace, $user, 'conv-1', 'We deploy on Tuesdays. I prefer short answers.', 'Noted.');
 
-    MemoryExtractor::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->contains("<user>\nWe deploy on Tuesdays. Keep it short.\n</user>") && $prompt->contains("<assistant>\nNoted.\n</assistant>"));
+    MemoryExtractor::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->contains("<user>\nWe deploy on Tuesdays. I prefer short answers.\n</user>") && $prompt->contains("<assistant>\nNoted.\n</assistant>"));
 
     expect(AgentMemory::orderBy('id')->get(['kind', 'content', 'source', 'user_id', 'importance'])->toArray())->toBe([
         ['kind' => 'process', 'content' => 'The team deploys on Tuesdays.', 'source' => 'extraction', 'user_id' => null, 'importance' => 0.7],

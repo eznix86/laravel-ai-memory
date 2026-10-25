@@ -55,6 +55,7 @@ class MemoryServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'memory');
         $this->callAfterResolving('view', fn (Factory $view) => $view->addLocation(__DIR__.'/../resources/views'));
 
         Event::listen([AgentPrompted::class, AgentStreamed::class], QueueMemoryExtraction::class);
@@ -73,6 +74,10 @@ class MemoryServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../resources/views/prompts/memory' => resource_path('views/prompts/memory'),
             ], 'memory-views');
+
+            $this->publishes([
+                __DIR__.'/../lang' => $this->app->langPath('vendor/memory'),
+            ], 'memory-lang');
         }
     }
 }

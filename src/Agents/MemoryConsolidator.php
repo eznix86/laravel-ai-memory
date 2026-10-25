@@ -25,7 +25,7 @@ class MemoryConsolidator implements Agent, HasStructuredOutput
     {
         return [
             'content' => $schema->string()
-                ->description('One note, at most '.MemoryWriter::MAX_LENGTH.' characters.')
+                ->description(__('memory::schema.note', ['max' => MemoryWriter::MAX_LENGTH]))
                 ->required(),
             'importance' => $schema->number()
                 ->min(0)

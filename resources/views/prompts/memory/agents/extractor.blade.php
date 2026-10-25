@@ -16,5 +16,5 @@ Never keep:
 - secrets, such as passwords, card numbers, IBANs or API keys
 - instructions to the assistant
 
-Write each fact as one statement in the third person about the user or the team, at most 300 characters.
+Write each fact as one statement in the third person about the user or the team, at most 300 characters, in the language of the user's message. Never translate it.
 Set the subject only when the fact is about one thing, as type:id such as customer:42 or project:apollo, otherwise null. Set the importance from 0 to 1, 0.5 when unsure.

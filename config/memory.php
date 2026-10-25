@@ -6,15 +6,12 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Table Name
+    | Memory Table
     |--------------------------------------------------------------------------
     |
-    | The database table that holds the agent memories. Change it before you
-    | run the migration if the default name clashes with your application.
-    |
-    | Default: "agent_memories"
-    | Possible values: any table name
-    | Example: MEMORY_TABLE=assistant_memories
+    | This option controls the name of the database table that holds the
+    | agent memories. Change it before you run the migration if the name
+    | clashes with a table that already exists in your application.
     |
     */
 
@@ -22,20 +19,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Vector Dimensions
+    | Embedding Dimensions
     |--------------------------------------------------------------------------
     |
-    | The number of dimensions for the embedding vectors. This must match
-    | the output dimensions of your embedding model. It is read when the
-    | migration runs, so changing it later needs a new migration.
+    | Here you may specify the number of dimensions of the embedding vectors.
+    | It must match the output of your embedding model, and it is read when
+    | the migration creates the table, so a later change needs a migration.
     |
-    | Default: 1536
-    | Possible values:
-    | - 1536 (OpenAI text-embedding-3-small, text-embedding-ada-002)
-    | - 3072 (OpenAI text-embedding-3-large, Gemini)
-    | - 1024 (Cohere embed-english-v3.0)
-    | - 768 (Ollama nomic-embed-text)
-    | Example: MEMORY_DIMENSIONS=768
+    | Common values: 1536 (OpenAI text-embedding-3-small), 3072 (OpenAI
+    |                text-embedding-3-large, Gemini), 1024 (Cohere v3),
+    |                768 (Ollama nomic-embed-text, embeddinggemma)
     |
     */
 
@@ -43,17 +36,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Loaded Memory Limit
+    | Full-Text Language
     |--------------------------------------------------------------------------
     |
-    | The number of memories the WithMemory middleware adds to the agent
-    | instructions on every prompt, strongest first. The agent reaches the
-    | other memories with the RecallMemory tool. Each memory costs tokens on
-    | every prompt, so keep it low.
+    | This option controls the PostgreSQL text search configuration used by
+    | the keyword half of the RecallMemory search. It is read when the
+    | migration builds the index, so a later change needs a new index. Use
+    | "simple" when your users write in several languages. PostgreSQL does
+    | not split Chinese, Japanese or Korean into words: there, recall relies
+    | on the meaning half of the search, or on an extension such as zhparser.
     |
-    | Default: 30
-    | Possible values: any integer from 0, where 0 loads nothing
-    | Example: MEMORY_LOADED_LIMIT=15
+    | Supported: any configuration listed by "\dF" in psql, such as
+    |            "english", "french", "german", "spanish", "simple"
+    |
+    */
+
+    'fulltext_language' => env('MEMORY_FULLTEXT_LANGUAGE', 'english'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Loaded Memories
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify how many memories the WithMemory middleware adds
+    | to the agent instructions on every prompt, strongest first. The agent
+    | reaches the other memories with the RecallMemory tool. Every loaded
+    | memory costs tokens on every prompt. Set it to 0 to load nothing.
     |
     */
 
@@ -61,72 +69,38 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Recall Limit
+    | Recall Results
     |--------------------------------------------------------------------------
     |
-    | The maximum number of memories the RecallMemory tool returns for one
-    | search.
-    |
-    | Default: 8
-    | Possible values: any integer from 1
-    | Example: MEMORY_RECALL_LIMIT=5
+    | These options control the RecallMemory tool. The limit is the number of
+    | memories one search returns. The minimum similarity, from 0.0 to 1.0,
+    | is the cosine similarity a memory needs to be found by meaning. Lower
+    | values find more, and some of it may not be relevant. Keyword matches
+    | are found whatever the minimum similarity is.
     |
     */
 
     'recall_limit' => (int) env('MEMORY_RECALL_LIMIT', 8),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Recall Minimum Similarity
-    |--------------------------------------------------------------------------
-    |
-    | The minimum cosine similarity a memory needs to be found by meaning in
-    | the RecallMemory tool. Lower values return more results, but some of
-    | them may not be relevant. Keyword matches are found whatever this is.
-    |
-    | Default: 0.3
-    | Possible values: a number from 0.0 (everything) to 1.0 (identical only)
-    | Example: MEMORY_RECALL_MIN_SIMILARITY=0.4
-    |
-    */
-
     'recall_min_similarity' => (float) env('MEMORY_RECALL_MIN_SIMILARITY', 0.3),
 
     /*
     |--------------------------------------------------------------------------
-    | Memory Agents Provider And Model
+    | Memory Agents
     |--------------------------------------------------------------------------
     |
-    | The provider and model of the small agents that decide on duplicates,
-    | extract facts after each turn and merge memories. They need structured
-    | output. Very small models do these tasks badly: test the model you pick.
-    |
-    | Default: null, which uses the default provider and model of config/ai.php
-    | Possible values: a provider name from config/ai.php, such as "openai",
-    | "anthropic", "gemini" or "ollama", and a model of that provider
-    | Example: MEMORY_PROVIDER=ollama
-    |          MEMORY_MODEL=granite4:3b
+    | Here you may specify the provider and model of the agents that decide
+    | on duplicates, extract facts after each turn, merge memories and guard
+    | against permissions. Any provider and model of config/ai.php with
+    | structured output works. Leave them empty to use the defaults of
+    | config/ai.php. The timeout is the number of seconds one answer may
+    | take, for these agents and for the classification calls below.
     |
     */
 
-    'provider' => env('MEMORY_PROVIDER'),
+    'provider' => env('MEMORY_PROVIDER') ?: null,
 
-    'model' => env('MEMORY_MODEL'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Memory Agents Timeout
-    |--------------------------------------------------------------------------
-    |
-    | The number of seconds the memory agents and the classification decider
-    | may take for one answer. Local thinking models can need more than a
-    | minute.
-    |
-    | Default: 120
-    | Possible values: any integer from 1
-    | Example: MEMORY_TIMEOUT=300
-    |
-    */
+    'model' => env('MEMORY_MODEL') ?: null,
 
     'timeout' => (int) env('MEMORY_TIMEOUT', 120),
 
@@ -135,31 +109,50 @@ return [
     | Duplicate Decider
     |--------------------------------------------------------------------------
     |
-    | How the writer decides whether a new fact is added, replaces a close
-    | memory, or is already known.
+    | This option controls how the writer decides whether a new fact is
+    | added, replaces a close memory, or is already known. The "agent"
+    | decider asks the memory agents model above. The "classification"
+    | decider asks a classification model, through the provider and model
+    | below. Leave those empty to use "default_for_classification" of
+    | config/ai.php and that provider's default classification model.
     |
-    | Default: "agent"
-    | Possible values:
-    | - "agent": a text model with structured output, through the memory
-    |   agents provider and model above. Works with every text provider.
-    | - "classification": a classification model, through the classification
-    |   provider and model below. Works with "typesafe", "openai", "openrouter"
-    |   and OpenAI-compatible providers that have a decisions endpoint.
-    | Example: MEMORY_DECIDER=classification
+    | Supported: "agent", "classification"
     |
-    | The classification provider and model default to null, which uses
-    | "default_for_classification" of config/ai.php and that provider's
-    | default classification model.
-    | Example: MEMORY_CLASSIFICATION_PROVIDER=typesafe
-    |          MEMORY_CLASSIFICATION_MODEL=jev-latest
+    | Classification providers: "typesafe", "openai", "openrouter", and
+    |                           "openai-compatible" with a decisions endpoint
     |
     */
 
     'decider' => env('MEMORY_DECIDER', 'agent'),
 
-    'classification_provider' => env('MEMORY_CLASSIFICATION_PROVIDER'),
+    'classification_provider' => env('MEMORY_CLASSIFICATION_PROVIDER') ?: null,
 
-    'classification_model' => env('MEMORY_CLASSIFICATION_MODEL'),
+    'classification_model' => env('MEMORY_CLASSIFICATION_MODEL') ?: null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Instruction And Password Patterns
+    |--------------------------------------------------------------------------
+    |
+    | The writer rejects a fact that matches one of these regular expressions.
+    | They depend on the language, and the defaults only know English, so
+    | add the patterns of the languages your users write in. An empty list
+    | turns the check off. Card numbers, IBANs and API keys are checked in
+    | every language. A capable model rephrases an instruction into a fact,
+    | so these patterns are a first line only: the permission guard below
+    | catches more.
+    |
+    */
+
+    'instruction_patterns' => [
+        '/^\s*(always|never|ignore|disregard|forget|do not|don\'t|you must|you should|you are to|from now on)\b/i',
+        '/\b(ignore|disregard|override)\s+(all\s+|any\s+)?(previous|prior|above|earlier|your)\s+(instructions|rules|guidelines)\b/i',
+        '/\b(system prompt|new instructions)\b/i',
+    ],
+
+    'password_patterns' => [
+        '/\b(password|passwd|pwd|passcode|pin code)\b\s*(is|:|=)\s*\S+/i',
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -167,19 +160,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | A fact such as "the user lets the agent approve refunds without asking"
-    | would steer every later turn. The writer can ask a classification model
-    | whether a fact grants the agent a permission to act on its own, and
-    | reject it. A capable model rephrases commands into facts, so the
-    | pattern check on instructions does not catch these. The guard costs one
-    | classification call per write, through the classification provider and
-    | model above. It catches most permissions, not all: keep real actions
-    | behind tool approvals.
+    | would steer every later turn. This option controls whether the writer
+    | asks a model if a fact lets the agent act on its own, and rejects it
+    | when it does. The "agent" guard asks the memory agents model, and the
+    | "classification" guard asks the classification model. Each write then
+    | costs one more call. The guard catches most permissions, not all, so
+    | keep real actions such as payments behind tool approvals.
     |
-    | Default: "none"
-    | Possible values:
-    | - "none": no check.
-    | - "classification": ask the classification model before each write.
-    | Example: MEMORY_PERMISSION_GUARD=classification
+    | Supported: "none", "agent", "classification"
     |
     */
 
@@ -187,105 +175,56 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Queue
-    |--------------------------------------------------------------------------
-    |
-    | The queue the extraction and consolidation jobs are pushed to, on your
-    | default queue connection.
-    |
-    | Default: null, which uses the default queue of the connection
-    | Possible values: any queue name your workers listen to
-    | Example: MEMORY_QUEUE=agents
-    |
-    */
-
-    'queue' => env('MEMORY_QUEUE'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Automatic Extraction
     |--------------------------------------------------------------------------
     |
-    | When enabled, every prompt to an agent that implements HasMemory queues
-    | a job that reads the user message and the reply, and stores up to three
-    | facts the user stated or confirmed. Each run costs one call to the
-    | memory agents model.
-    |
-    | Default: true
-    | Possible values: true or false
-    | Example: MEMORY_EXTRACTION=false
+    | When extraction is enabled, every prompt to an agent that implements
+    | HasMemory queues a job that reads the user message and the reply, and
+    | stores up to three facts the user stated. Each job costs one call to
+    | the memory agents model. The queue is the queue of the extraction and
+    | consolidation jobs, on your default connection. Leave it empty to use
+    | the default queue.
     |
     */
 
     'extraction' => (bool) env('MEMORY_EXTRACTION', true),
 
+    'queue' => env('MEMORY_QUEUE') ?: null,
+
     /*
     |--------------------------------------------------------------------------
-    | Duplicate Similarity
+    | Duplicates And Capacity
     |--------------------------------------------------------------------------
     |
-    | The cosine similarity from which a stored memory may say the same thing
-    | as a new fact. The writer then asks the duplicate decider to add the
-    | fact, replace the old memory, or do nothing. Below it, the fact is
-    | added without asking.
-    |
-    | Default: 0.75
-    | Possible values: a number from 0.0 (ask for every fact) to 1.0 (ask only
-    | for identical facts)
-    | Example: MEMORY_DUPLICATE_SIMILARITY=0.8
+    | A stored memory with a cosine similarity of at least the duplicate
+    | similarity may say the same thing as a new fact, and the writer then
+    | asks the duplicate decider. Below it, the fact is added without asking.
+    | When a context holds more live memories than the maximum, the weakest
+    | ones are archived before a new one is added. Memories written or
+    | confirmed by a person are never archived this way.
     |
     */
 
     'duplicate_similarity' => (float) env('MEMORY_DUPLICATE_SIMILARITY', 0.75),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Maximum Live Memories
-    |--------------------------------------------------------------------------
-    |
-    | The number of live memories a context can hold. Before a new memory is
-    | added over this number, the weakest ones are archived. Memories written
-    | or confirmed by a person are never archived this way.
-    |
-    | Default: 500
-    | Possible values: any integer from 1
-    | Example: MEMORY_MAX_LIVE=200
-    |
-    */
-
     'max_live' => (int) env('MEMORY_MAX_LIVE', 500),
 
     /*
     |--------------------------------------------------------------------------
-    | Consolidation Threshold
+    | Consolidation
     |--------------------------------------------------------------------------
     |
-    | The number of live memories on one subject, with the same owner, from
-    | which the weekly consolidation merges them into one note.
-    |
-    | Default: 6
-    | Possible values: any integer from 2
-    | Example: MEMORY_CONSOLIDATION_THRESHOLD=10
+    | The memory:consolidate command merges the live memories of one subject
+    | and owner into one note when there are at least as many as the
+    | threshold. It then archives the memories whose decayed strength falls
+    | below the archive strength, from 0.0 (never) to 1.0. Memories written
+    | or confirmed by a person are kept. With importance 0.5, a memory falls
+    | below 0.05 after about 3.3 half-lives without use: 70 days for a
+    | "context" memory, 600 days for a "preference".
     |
     */
 
     'consolidation_threshold' => (int) env('MEMORY_CONSOLIDATION_THRESHOLD', 6),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Archive Strength
-    |--------------------------------------------------------------------------
-    |
-    | The weekly consolidation archives memories whose decayed strength falls
-    | below this value. Memories written or confirmed by a person are kept.
-    | A memory with importance 0.5 falls below 0.05 after about 3.3
-    | half-lives without use: 70 days for "context", 600 for "preference".
-    |
-    | Default: 0.05
-    | Possible values: a number from 0.0 (never archive) to 1.0
-    | Example: MEMORY_ARCHIVE_BELOW=0.02
-    |
-    */
 
     'archive_below' => (float) env('MEMORY_ARCHIVE_BELOW', 0.05),
 

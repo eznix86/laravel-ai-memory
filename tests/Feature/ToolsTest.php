@@ -8,6 +8,7 @@ use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Tools\Forget;
 use Eznix86\AI\Memory\Tools\RecallMemory;
 use Eznix86\AI\Memory\Tools\Remember;
+use Illuminate\Support\Facades\Lang;
 use Laravel\Ai\Tools\Request;
 
 test('Remember stores the fact with the conversation as source', function (): void {
@@ -72,4 +73,13 @@ test('RecallMemory returns live memories in the context and marks them as used',
         ->and($memory->fresh())
         ->recall_count->toBe(1)
         ->last_used_at->toEqual(now());
+});
+
+test('the tool messages follow the application locale', function (): void {
+    app()->setLocale('fr');
+    Lang::addLines(['tools.remembered' => 'Retenu sous #:id.'], 'fr', 'memory');
+
+    $result = (new Remember(new MemoryContext(workspace())))->handle(new Request(['kind' => 'lesson', 'content' => 'Les livraisons à Genève prennent deux jours.']));
+
+    expect($result)->toBe('Retenu sous #'.AgentMemory::sole()->id.'.');
 });

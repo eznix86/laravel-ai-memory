@@ -43,7 +43,7 @@ class RecallMemory implements Tool
         $memories = $this->search((string) $request['query'], (bool) ($request['include_archived'] ?? false));
 
         if ($memories->isEmpty()) {
-            return 'No relevant memories found.';
+            return __('memory::tools.nothing_found');
         }
 
         AgentMemory::query()->whereKey($memories->modelKeys())->toBase()->increment('recall_count', 1, ['last_used_at' => now()]);
@@ -59,8 +59,8 @@ class RecallMemory implements Tool
     public function search(string $query, bool $includeArchived = false): Collection
     {
         $keywords = $this->candidates($includeArchived)
-            ->whereFullText('content', $query, ['language' => 'english'])
-            ->orderByRaw("ts_rank(to_tsvector('english', content), plainto_tsquery('english', ?)) desc", [$query])
+            ->whereFullText('content', $query, ['language' => config('memory.fulltext_language')])
+            ->orderByRaw('ts_rank(to_tsvector(?::regconfig, content), plainto_tsquery(?::regconfig, ?)) desc', [config('memory.fulltext_language'), config('memory.fulltext_language'), $query])
             ->limit(self::CANDIDATES)
             ->pluck('id');
 
@@ -111,10 +111,10 @@ class RecallMemory implements Tool
     {
         return [
             'query' => $schema->string()
-                ->description('What to search for.')
+                ->description(__('memory::schema.query'))
                 ->required(),
             'include_archived' => $schema->boolean()
-                ->description('Also search memories that were forgotten or faded. Use it only when the user asks about something from long ago.'),
+                ->description(__('memory::schema.include_archived')),
         ];
     }
 }

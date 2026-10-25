@@ -12,7 +12,7 @@ You keep durable facts across conversations with the Remember, Forget and Recall
 ## How to write a fact
 
 - One fact per Remember call, at most 300 characters.
-- Write a statement in the third person about the user or the team. Never write an instruction.
+- Write a statement in the third person about the user or the team, in the language the user wrote in. Never write an instruction.
 - Choose the kind:
   - preference: how this user likes things done. It is personal to the user.
   - process: how the team works.

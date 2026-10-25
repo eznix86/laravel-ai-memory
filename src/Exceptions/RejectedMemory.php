@@ -13,7 +13,7 @@ class RejectedMemory extends InvalidArgumentException
      */
     public static function secret(string $kind): self
     {
-        return new self("Rejected: the fact contains what looks like {$kind}. Never store secrets.");
+        return new self(__('memory::rejections.secret', ['kind' => __("memory::rejections.secrets.{$kind}")]));
     }
 
     /**
@@ -21,7 +21,7 @@ class RejectedMemory extends InvalidArgumentException
      */
     public static function instruction(): self
     {
-        return new self('Rejected: the fact is phrased as an instruction to the agent, so nothing was stored. Instructions are never remembered.');
+        return new self(__('memory::rejections.instruction'));
     }
 
     /**
@@ -29,7 +29,7 @@ class RejectedMemory extends InvalidArgumentException
      */
     public static function permission(): self
     {
-        return new self('Rejected: the fact gives the agent a permission to act on its own, so nothing was stored. Permissions are never remembered: ask the user at the time of the action.');
+        return new self(__('memory::rejections.permission'));
     }
 
     /**
@@ -37,6 +37,6 @@ class RejectedMemory extends InvalidArgumentException
      */
     public static function invalid(string $reason): self
     {
-        return new self("Rejected: {$reason}");
+        return new self(__('memory::rejections.invalid', ['reason' => $reason]));
     }
 }

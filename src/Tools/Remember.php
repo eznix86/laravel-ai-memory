@@ -50,9 +50,9 @@ class Remember implements Tool
         }
 
         return match ($write->outcome) {
-            WriteOutcome::Added => "Remembered as #{$write->memory->id}.",
-            WriteOutcome::Updated => "Remembered as #{$write->memory->id}. It replaces #{$write->replaced?->id}.",
-            WriteOutcome::Known => "Already known as #{$write->memory->id}. Nothing was stored.",
+            WriteOutcome::Added => __('memory::tools.remembered', ['id' => $write->memory->id]),
+            WriteOutcome::Updated => __('memory::tools.replaced', ['id' => $write->memory->id, 'old' => $write->replaced?->id]),
+            WriteOutcome::Known => __('memory::tools.known', ['id' => $write->memory->id]),
         };
     }
 
@@ -66,17 +66,17 @@ class Remember implements Tool
         return [
             'kind' => $schema->string()
                 ->enum(MemoryKind::values())
-                ->description('The kind of fact.')
+                ->description(__('memory::schema.kind'))
                 ->required(),
             'content' => $schema->string()
-                ->description('One fact, at most '.MemoryWriter::MAX_LENGTH.' characters.')
+                ->description(__('memory::schema.content', ['max' => MemoryWriter::MAX_LENGTH]))
                 ->required(),
             'subject' => $schema->string()
-                ->description('The id of the one thing the fact is about, as type:id, such as customer:42 or project:apollo. Leave it out when the fact is general.'),
+                ->description(__('memory::schema.subject')),
             'importance' => $schema->number()
                 ->min(0)
                 ->max(1)
-                ->description('How much the fact matters, from 0 to 1. The default is 0.5.'),
+                ->description(__('memory::schema.importance')),
         ];
     }
 }

@@ -24,10 +24,10 @@ class ClassificationDecider implements DecidesDuplicates
     public function decide(AgentMemory $memory, Collection $candidates): array
     {
         $options = [
-            'add' => 'The new fact is about something else than every stored memory.',
-            'noop' => 'A stored memory already says the same thing as the new fact.',
+            'add' => __('memory::classification.add'),
+            'noop' => __('memory::classification.noop'),
             ...$candidates->mapWithKeys(fn (AgentMemory $candidate): array => [
-                "replace_{$candidate->id}" => "The new fact changes or contradicts memory #{$candidate->id}.",
+                "replace_{$candidate->id}" => __('memory::classification.replace', ['id' => $candidate->id]),
             ])->all(),
         ];
 
