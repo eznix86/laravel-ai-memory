@@ -360,6 +360,7 @@ Every option is documented in `config/memory.php`. The ones you are most likely 
 | `AI_MEMORY_CLASSIFICATION_PROVIDER`, `AI_MEMORY_CLASSIFICATION_MODEL` | `config/ai.php` defaults | Model of the classification decider and guard |
 | `AI_MEMORY_FULLTEXT_LANGUAGE` | `english` | PostgreSQL text search configuration |
 | `AI_MEMORY_EXTRACTION` | `true` | Extract facts after each turn |
+| `AI_MEMORY_EXTRACTION_WINDOW` | `4` | Messages before the turn the extractor reads as context, `0` for the turn alone |
 | `AI_MEMORY_QUEUE` | default queue | Queue of the extraction and consolidation jobs |
 | `AI_MEMORY_LOADED_LIMIT` | `30` | Memories added to the instructions |
 | `AI_MEMORY_RELEVANT_LIMIT` | `8` | Of those, memories chosen because they match the last user messages |
