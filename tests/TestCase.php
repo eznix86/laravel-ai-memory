@@ -35,6 +35,7 @@ abstract class TestCase extends BaseTestCase
         'provider' => null,
         'model' => null,
         'timeout' => 120,
+        'provider_options' => [],
         'decider' => 'agent',
         'classification_provider' => null,
         'classification_model' => null,

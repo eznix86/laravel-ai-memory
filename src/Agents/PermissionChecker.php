@@ -8,10 +8,11 @@ use Eznix86\AI\Memory\Agents\Concerns\AsksMemoryModel;
 use Eznix86\AI\Memory\Prompt;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Stringable;
 
-class PermissionChecker implements Agent, HasStructuredOutput
+class PermissionChecker implements Agent, HasProviderOptions, HasStructuredOutput
 {
     use AsksMemoryModel;
 

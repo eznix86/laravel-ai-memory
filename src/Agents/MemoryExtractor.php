@@ -10,10 +10,11 @@ use Eznix86\AI\Memory\Prompt;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Stringable;
 
-class MemoryExtractor implements Agent, HasStructuredOutput
+class MemoryExtractor implements Agent, HasProviderOptions, HasStructuredOutput
 {
     use AsksMemoryModel;
 

@@ -103,7 +103,11 @@ return [
     | against permissions. Any provider and model of config/ai.php with
     | structured output works. Leave them empty to use the defaults of
     | config/ai.php. The timeout is the number of seconds one answer may
-    | take, for these agents and for the classification calls below.
+    | take, for these agents and for the classification calls below. The
+    | provider options are added to every request of these agents, keyed by
+    | provider, such as the OpenRouter routing below, given as JSON in env:
+    |
+    | AI_MEMORY_PROVIDER_OPTIONS='{"openrouter": {"provider": {"only": ["modelrun/fp4"]}}}'
     |
     */
 
@@ -112,6 +116,8 @@ return [
     'model' => env('AI_MEMORY_MODEL') ?: null,
 
     'timeout' => (int) env('AI_MEMORY_TIMEOUT', 120),
+
+    'provider_options' => json_decode((string) env('AI_MEMORY_PROVIDER_OPTIONS', '{}'), true) ?: [],
 
     /*
     |--------------------------------------------------------------------------
