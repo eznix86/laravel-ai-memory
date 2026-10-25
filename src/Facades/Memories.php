@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Facade;
 use Laravel\Ai\Classification;
 use Laravel\Ai\Embeddings;
 use Laravel\Ai\Prompts\EmbeddingsPrompt;
+use Laravel\Ai\Responses\Data\BooleanAnswer;
 use Laravel\Ai\Responses\Data\ChoiceAnswer;
 
 /**
@@ -48,7 +49,7 @@ class Memories extends Facade
         Embeddings::fake(fn (EmbeddingsPrompt $prompt): array => array_map(static::embed(...), $prompt->inputs));
 
         MemoryDecider::fake(fn (): array => ['decision' => 'add', 'replace_id' => null]);
-        Classification::fake(fn (): array => ['decision' => new ChoiceAnswer('add', ['add' => 1.0])]);
+        Classification::fake(fn (): array => ['decision' => new ChoiceAnswer('add', ['add' => 1.0]), 'grants_permission' => new BooleanAnswer(0.0)]);
         MemoryExtractor::fake(fn (): array => ['facts' => []]);
         MemoryConsolidator::fake(fn (): array => ['content' => 'Merged note.', 'importance' => 0.5]);
     }

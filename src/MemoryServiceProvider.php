@@ -6,10 +6,13 @@ namespace Eznix86\AI\Memory;
 
 use Eznix86\AI\Memory\Console\ConsolidateCommand;
 use Eznix86\AI\Memory\Contracts\DecidesDuplicates;
+use Eznix86\AI\Memory\Contracts\GuardsPermissions;
 use Eznix86\AI\Memory\Deciders\AgentDecider;
 use Eznix86\AI\Memory\Deciders\ClassificationDecider;
 use Eznix86\AI\Memory\Listeners\QueueMemoryExtraction;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\PermissionGuards\ClassificationPermissionGuard;
+use Eznix86\AI\Memory\PermissionGuards\NoPermissionGuard;
 use Eznix86\AI\Memory\Policies\MemoryPolicy;
 use Eznix86\AI\Memory\Services\MemoryManager;
 use Eznix86\AI\Memory\Services\MemoryWriter;
@@ -36,6 +39,11 @@ class MemoryServiceProvider extends ServiceProvider
         $this->app->bind(DecidesDuplicates::class, fn (): DecidesDuplicates => match (config('memory.decider')) {
             'classification' => new ClassificationDecider,
             default => new AgentDecider,
+        });
+
+        $this->app->bind(GuardsPermissions::class, fn (): GuardsPermissions => match (config('memory.permission_guard')) {
+            'classification' => new ClassificationPermissionGuard,
+            default => new NoPermissionGuard,
         });
     }
 

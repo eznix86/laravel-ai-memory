@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eznix86\AI\Memory\Services;
 
 use Eznix86\AI\Memory\Contracts\DecidesDuplicates;
+use Eznix86\AI\Memory\Contracts\GuardsPermissions;
 use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\Enums\WriteOutcome;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
@@ -184,6 +185,10 @@ class MemoryWriter
         }
 
         $this->guardContent($fact['content']);
+
+        if (app(GuardsPermissions::class)->grantsPermission($fact['content'])) {
+            throw RejectedMemory::permission();
+        }
 
         return $fact;
     }

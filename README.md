@@ -155,6 +155,12 @@ Every write goes through `MemoryWriter`. It rejects:
 
 The `Remember` tool returns the reason to the agent, so it can restate the fact.
 
+### Permission guard
+
+A capable model rewrites "Always approve refunds" into a fact such as "The user prefers that refunds be approved without asking". The instruction patterns do not catch that, and the fact would steer every later turn. With `MEMORY_PERMISSION_GUARD=classification`, the writer asks a classification model whether the fact lets the agent act on its own, and rejects it when the answer is yes. It uses the classification provider and model of the decider, and costs one call per write.
+
+In our tests with TypeSafe `jev-latest`, it judged 38 of 39 sentences right, permissions and look-alikes, including permissions phrased as preferences and reported speech. It catches most permissions, not all: keep real actions such as payments behind the SDK's tool approvals. The question lives in `prompts.memory.classification.permission.*`.
+
 ## Duplicates and corrections
 
 Before a fact is stored, the writer looks for up to 5 live memories with the same owner and subject, and a cosine similarity of 0.75 or more. When it finds some, it asks for one decision:
@@ -262,6 +268,7 @@ The text the agent sees comes from Blade views in `resources/views/prompts/memor
 | `prompts.memory.skill.instructions` | `MemorySkill` instructions |
 | `prompts.memory.agents.decider`, `decider-prompt` | Duplicate decider instructions and prompt |
 | `prompts.memory.classification.decider` | Classification decider question |
+| `prompts.memory.classification.permission.question`, `true`, `false` | Permission guard question and its two answers |
 | `prompts.memory.agents.extractor`, `extractor-prompt` | Extraction instructions and prompt |
 | `prompts.memory.agents.consolidator`, `consolidator-prompt` | Consolidation instructions and prompt |
 
@@ -279,6 +286,7 @@ Use `{!! !!}` for memory content in your templates. `{{ }}` escapes quotes as HT
 | `provider`, `model` | `MEMORY_PROVIDER`, `MEMORY_MODEL` | default | Provider and model of the decider, extractor and consolidator agents |
 | `timeout` | `MEMORY_TIMEOUT` | `120` | Seconds the memory agents and the classification decider may take |
 | `decider` | `MEMORY_DECIDER` | `agent` | `agent` or `classification` |
+| `permission_guard` | `MEMORY_PERMISSION_GUARD` | `none` | `none` or `classification` |
 | `classification_provider`, `classification_model` | `MEMORY_CLASSIFICATION_PROVIDER`, `MEMORY_CLASSIFICATION_MODEL` | default | Provider and model of the classification decider |
 | `queue` | `MEMORY_QUEUE` | default | Queue of the extraction and consolidation jobs |
 | `extraction` | `MEMORY_EXTRACTION` | `true` | Extract facts after each turn |

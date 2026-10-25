@@ -25,6 +25,14 @@ class RejectedMemory extends InvalidArgumentException
     }
 
     /**
+     * Create an exception for a fact that grants the agent a permission.
+     */
+    public static function permission(): self
+    {
+        return new self('Rejected: the fact gives the agent a permission to act on its own, so nothing was stored. Permissions are never remembered: ask the user at the time of the action.');
+    }
+
+    /**
      * Create an exception for a fact that fails validation.
      */
     public static function invalid(string $reason): self

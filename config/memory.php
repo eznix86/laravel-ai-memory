@@ -163,6 +163,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Permission Guard
+    |--------------------------------------------------------------------------
+    |
+    | A fact such as "the user lets the agent approve refunds without asking"
+    | would steer every later turn. The writer can ask a classification model
+    | whether a fact grants the agent a permission to act on its own, and
+    | reject it. A capable model rephrases commands into facts, so the
+    | pattern check on instructions does not catch these. The guard costs one
+    | classification call per write, through the classification provider and
+    | model above. It catches most permissions, not all: keep real actions
+    | behind tool approvals.
+    |
+    | Default: "none"
+    | Possible values:
+    | - "none": no check.
+    | - "classification": ask the classification model before each write.
+    | Example: MEMORY_PERMISSION_GUARD=classification
+    |
+    */
+
+    'permission_guard' => env('MEMORY_PERMISSION_GUARD', 'none'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Queue
     |--------------------------------------------------------------------------
     |
