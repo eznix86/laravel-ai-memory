@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Eznix86\AI\Memory\Agents\MemoryConsolidator;
+use Eznix86\AI\Memory\Agents\PermissionChecker;
 use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
 use Eznix86\AI\Memory\Facades\Memories;
@@ -13,6 +14,7 @@ use Eznix86\AI\Memory\Tools\Remember;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Laravel\Ai\Classification;
+use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Prompts\ClassificationPrompt;
 use Laravel\Ai\Responses\Data\BooleanAnswer;
 use Laravel\Ai\Tools\Request;
@@ -92,4 +94,27 @@ test('the permission question can be overridden in the application views', funct
     } finally {
         File::deleteDirectory(resource_path('views/prompts'));
     }
+});
+
+test('the agent guard asks the memory model and rejects a permission', function (): void {
+    config(['memory.permission_guard' => 'agent', 'memory.model' => 'any-model', 'memory.timeout' => 45]);
+    PermissionChecker::fake([['grants_permission' => true]]);
+
+    $result = rememberLesson(new MemoryContext(workspace()), 'The bot may merge pull requests by itself.');
+
+    expect($result)->toContain('gives the agent a permission')
+        ->and(AgentMemory::count())->toBe(0);
+    PermissionChecker::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->contains('Fact: The bot may merge pull requests by itself.')
+        && $prompt->model === 'any-model'
+        && $prompt->timeout === 45);
+    Classification::assertNothingClassified();
+});
+
+test('the agent guard lets a fact through when the model says no', function (): void {
+    config(['memory.permission_guard' => 'agent']);
+    PermissionChecker::fake([['grants_permission' => false]]);
+
+    rememberLesson(new MemoryContext(workspace()), 'The team deploys only on Thursdays.');
+
+    expect(AgentMemory::count())->toBe(1);
 });

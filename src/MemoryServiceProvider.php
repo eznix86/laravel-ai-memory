@@ -11,6 +11,7 @@ use Eznix86\AI\Memory\Deciders\AgentDecider;
 use Eznix86\AI\Memory\Deciders\ClassificationDecider;
 use Eznix86\AI\Memory\Listeners\QueueMemoryExtraction;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\PermissionGuards\AgentPermissionGuard;
 use Eznix86\AI\Memory\PermissionGuards\ClassificationPermissionGuard;
 use Eznix86\AI\Memory\PermissionGuards\NoPermissionGuard;
 use Eznix86\AI\Memory\Policies\MemoryPolicy;
@@ -42,6 +43,7 @@ class MemoryServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(GuardsPermissions::class, fn (): GuardsPermissions => match (config('memory.permission_guard')) {
+            'agent' => new AgentPermissionGuard,
             'classification' => new ClassificationPermissionGuard,
             default => new NoPermissionGuard,
         });

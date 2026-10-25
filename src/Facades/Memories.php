@@ -7,6 +7,7 @@ namespace Eznix86\AI\Memory\Facades;
 use Eznix86\AI\Memory\Agents\MemoryConsolidator;
 use Eznix86\AI\Memory\Agents\MemoryDecider;
 use Eznix86\AI\Memory\Agents\MemoryExtractor;
+use Eznix86\AI\Memory\Agents\PermissionChecker;
 use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\MemoryWrite;
@@ -53,6 +54,7 @@ class Memories extends Facade
         MemoryDecider::fake(fn (): array => ['decision' => 'add', 'replace_id' => null]);
         Classification::fake(fn (): array => ['decision' => new ChoiceAnswer('add', ['add' => 1.0]), 'grants_permission' => new BooleanAnswer(0.0)]);
         MemoryExtractor::fake(fn (): array => ['facts' => []]);
+        PermissionChecker::fake(fn (): array => ['grants_permission' => false]);
         MemoryConsolidator::fake(fn (): array => ['content' => 'Merged note.', 'importance' => 0.5]);
     }
 
