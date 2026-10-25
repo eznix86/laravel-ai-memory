@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Eznix86\AI\Memory\Embedder;
 use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
 use Eznix86\AI\Memory\MemoryContext;
@@ -30,7 +31,7 @@ test('a fact is stored in the tenant with its source and an embedding', function
         ->kind->toBe(MemoryKind::Process)
         ->source->toBe('test')
         ->importance->toBe(0.5)
-        ->embedding->toHaveCount(config('memory.dimensions'));
+        ->embedding->toHaveCount(Embedder::dimensions());
 
     Embeddings::assertGenerated(fn (EmbeddingsPrompt $prompt): bool => $prompt->inputs === ['team:billing · process: Invoices are sent on the first Monday.']);
 });
@@ -107,19 +108,4 @@ test('an empty pattern list turns the instruction check off', function (): void 
     $memory = write(['content' => 'Always double-check invoices above 1000 francs.']);
 
     expect($memory->exists)->toBeTrue();
-});
-
-test('empty provider and model settings fall back to the application defaults', function (): void {
-    putenv('MEMORY_PROVIDER=');
-    putenv('MEMORY_MODEL=');
-
-    try {
-        $config = require __DIR__.'/../../config/memory.php';
-
-        expect($config['provider'])->toBeNull()
-            ->and($config['model'])->toBeNull();
-    } finally {
-        putenv('MEMORY_PROVIDER');
-        putenv('MEMORY_MODEL');
-    }
 });

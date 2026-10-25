@@ -6,6 +6,7 @@ namespace Eznix86\AI\Memory\Services;
 
 use Eznix86\AI\Memory\Contracts\DecidesDuplicates;
 use Eznix86\AI\Memory\Contracts\GuardsPermissions;
+use Eznix86\AI\Memory\Embedder;
 use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\Enums\WriteOutcome;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
@@ -79,7 +80,7 @@ class MemoryWriter
             $memory->creator()->associate($fact['creator']);
         }
 
-        $memory->embedding = Str::of($memory->embeddingText())->toEmbeddings();
+        $memory->embedding = Embedder::embed($memory->embeddingText());
 
         $candidates = $this->candidates($context, $memory);
 

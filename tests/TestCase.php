@@ -17,6 +17,35 @@ abstract class TestCase extends BaseTestCase
 {
     use RefreshDatabase;
 
+    /**
+     * The memory config the feature tests run on, whatever the environment says.
+     *
+     * @var array<string, mixed>
+     */
+    public const array MEMORY_DEFAULTS = [
+        'table' => 'agent_memories',
+        'embeddings_provider' => null,
+        'embeddings_model' => null,
+        'dimensions' => null,
+        'fulltext_language' => 'english',
+        'loaded_limit' => 30,
+        'recall_limit' => 8,
+        'recall_min_similarity' => 0.3,
+        'provider' => null,
+        'model' => null,
+        'timeout' => 120,
+        'decider' => 'agent',
+        'classification_provider' => null,
+        'classification_model' => null,
+        'permission_guard' => 'none',
+        'extraction' => true,
+        'queue' => null,
+        'duplicate_similarity' => 0.75,
+        'max_live' => 500,
+        'consolidation_threshold' => 6,
+        'archive_below' => 0.05,
+    ];
+
     protected static ?StartedGenericContainer $postgresContainer = null;
 
     /**
@@ -29,13 +58,13 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUpBeforeClass();
 
-        if (env('MEMORY_TEST_DB_HOST')) {
+        if (env('DB_HOST')) {
             static::$database = [
-                'host' => env('MEMORY_TEST_DB_HOST'),
-                'port' => (int) env('MEMORY_TEST_DB_PORT', 5432),
-                'database' => env('MEMORY_TEST_DB_DATABASE', 'memory_test'),
-                'username' => env('MEMORY_TEST_DB_USERNAME', 'postgres'),
-                'password' => (string) env('MEMORY_TEST_DB_PASSWORD', ''),
+                'host' => env('DB_HOST'),
+                'port' => (int) env('DB_PORT', 5432),
+                'database' => env('DB_DATABASE', 'memory_test'),
+                'username' => env('DB_USERNAME', 'postgres'),
+                'password' => (string) env('DB_PASSWORD', ''),
             ];
 
             return;
@@ -98,5 +127,19 @@ abstract class TestCase extends BaseTestCase
             'prefix' => '',
             'schema' => 'public',
         ]);
+
+        foreach ($this->memoryConfig() as $key => $value) {
+            $app['config']->set("memory.{$key}", $value);
+        }
+    }
+
+    /**
+     * Get the memory config the tests run on.
+     *
+     * @return array<string, mixed>
+     */
+    protected function memoryConfig(): array
+    {
+        return self::MEMORY_DEFAULTS;
     }
 }

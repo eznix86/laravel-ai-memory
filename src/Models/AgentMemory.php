@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eznix86\AI\Memory\Models;
 
+use Eznix86\AI\Memory\Embedder;
 use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\MemoryContext;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -13,7 +14,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Number;
-use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -73,7 +73,7 @@ class AgentMemory extends Model
     {
         static::saving(function (AgentMemory $memory): void {
             if ($memory->isDirty(['content', 'subject', 'kind']) && ! $memory->isDirty('embedding')) {
-                $memory->embedding = Str::of($memory->embeddingText())->toEmbeddings();
+                $memory->embedding = Embedder::embed($memory->embeddingText());
             }
         });
     }

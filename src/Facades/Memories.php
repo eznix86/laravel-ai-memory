@@ -8,6 +8,7 @@ use Eznix86\AI\Memory\Agents\MemoryConsolidator;
 use Eznix86\AI\Memory\Agents\MemoryDecider;
 use Eznix86\AI\Memory\Agents\MemoryExtractor;
 use Eznix86\AI\Memory\Agents\PermissionChecker;
+use Eznix86\AI\Memory\Embedder;
 use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\MemoryWrite;
@@ -65,7 +66,7 @@ class Memories extends Facade
      */
     public static function embed(string $text): array
     {
-        $dimensions = config('memory.dimensions');
+        $dimensions = Embedder::dimensions();
 
         $counts = Str::matchAll("/[a-z'-]+/", Str::lower($text))
             ->diff(['the', 'and', 'for', 'are', 'our', 'that', 'this', 'with', 'does', 'has', 'have', 'you', 'your'])

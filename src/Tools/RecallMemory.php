@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eznix86\AI\Memory\Tools;
 
+use Eznix86\AI\Memory\Embedder;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Prompt;
@@ -65,7 +66,7 @@ class RecallMemory implements Tool
             ->pluck('id');
 
         $meanings = $this->candidates($includeArchived)
-            ->whereVectorSimilarTo('embedding', $query, config('memory.recall_min_similarity'))
+            ->whereVectorSimilarTo('embedding', Embedder::embed($query), config('memory.recall_min_similarity'))
             ->limit(self::CANDIDATES)
             ->pluck('id');
 

@@ -21,7 +21,7 @@ abstract class IntegrationTestCase extends TestCase
     protected function setUp(): void
     {
         if (! static::live()) {
-            $this->markTestSkipped('Set MEMORY_LIVE=1 and the MEMORY_LIVE_* models to run the live tests.');
+            $this->markTestSkipped('Set AI_MEMORY_PROVIDER and AI_MEMORY_MODEL to run the live tests.');
         }
 
         parent::setUp();
@@ -43,7 +43,13 @@ abstract class IntegrationTestCase extends TestCase
 
     protected static function live(): bool
     {
-        return (bool) env('MEMORY_LIVE', false);
+        return (bool) env('AI_MEMORY_PROVIDER');
+    }
+
+    #[\Override]
+    protected function memoryConfig(): array
+    {
+        return [];
     }
 
     #[\Override]
@@ -51,13 +57,9 @@ abstract class IntegrationTestCase extends TestCase
     {
         parent::defineEnvironment($app);
 
-        $provider = env('MEMORY_LIVE_PROVIDER') ?: 'ollama';
-        $embeddings = env('MEMORY_LIVE_EMBEDDINGS_PROVIDER') ?: $provider;
+        $provider = (string) env('AI_MEMORY_PROVIDER');
 
         $app['config']->set('ai.default', $provider);
-        $app['config']->set('ai.default_for_embeddings', $embeddings);
-        $app['config']->set("ai.providers.{$provider}.models.text.default", env('MEMORY_LIVE_CHAT_MODEL') ?: null);
-        $app['config']->set("ai.providers.{$embeddings}.models.embeddings.default", env('MEMORY_LIVE_EMBEDDINGS_MODEL') ?: null);
-        $app['config']->set("ai.providers.{$embeddings}.models.embeddings.dimensions", config('memory.dimensions'));
+        $app['config']->set("ai.providers.{$provider}.models.text.default", env('AI_MEMORY_MODEL') ?: null);
     }
 }

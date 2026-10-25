@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Eznix86\AI\Memory\Embedder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -33,7 +34,7 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->foreignId('superseded_by')->nullable()->constrained(config('memory.table'))->nullOnDelete();
             $table->timestamp('archived_at')->nullable();
-            $table->vector('embedding', dimensions: config('memory.dimensions'))->nullable();
+            $table->vector('embedding', dimensions: Embedder::dimensions())->nullable();
             $table->timestamps();
 
             $table->vectorIndex('embedding');

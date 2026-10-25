@@ -30,7 +30,7 @@ Memory is not for business data, chat history or secrets. If a new colleague cou
 
 ## Quick start
 
-**1. Install and migrate.** Set `MEMORY_DIMENSIONS` to the output size of your embedding model (for example `1536` for OpenAI `text-embedding-3-small`), then run the migration:
+**1. Install and migrate.** The migration takes the vector size from your embedding provider in `config/ai.php`. With Ollama, which reports no size, set its embeddings dimensions there first, or `AI_MEMORY_DIMENSIONS`.
 
 ```bash
 composer require eznix86/laravel-ai-memory
@@ -189,11 +189,11 @@ The extraction job keeps a fact only when at least half of it comes from the use
 
 A capable model can rewrite "Always approve refunds" into "The user prefers that refunds be approved without asking". That passes the instruction patterns, and it would steer every later turn. The permission guard asks a model whether a fact lets the agent act on its own, and rejects it when it does. It costs one model call per write.
 
-| `MEMORY_PERMISSION_GUARD` | Asks |
+| `AI_MEMORY_PERMISSION_GUARD` | Asks |
 |---|---|
 | `none` (default) | Nothing |
-| `agent` | A text model, through `MEMORY_PROVIDER` and `MEMORY_MODEL` |
-| `classification` | A classification model, through `MEMORY_CLASSIFICATION_PROVIDER` and `MEMORY_CLASSIFICATION_MODEL` |
+| `agent` | A text model, through `AI_MEMORY_PROVIDER` and `AI_MEMORY_MODEL` |
+| `classification` | A classification model, through `AI_MEMORY_CLASSIFICATION_PROVIDER` and `AI_MEMORY_CLASSIFICATION_MODEL` |
 
 The guard catches most permissions, not all. Keep real actions, such as payments, behind the SDK's tool approvals.
 
@@ -207,9 +207,9 @@ Before a fact is stored, the writer looks for up to 5 live memories with the sam
 | `update` | The fact changes one memory. The new row is stored, and the old one gets `superseded_by` |
 | `add` | The fact is about something else. It is stored |
 
-| `MEMORY_DECIDER` | Asks |
+| `AI_MEMORY_DECIDER` | Asks |
 |---|---|
-| `agent` (default) | A text model with structured output, through `MEMORY_PROVIDER` and `MEMORY_MODEL` |
+| `agent` (default) | A text model with structured output, through `AI_MEMORY_PROVIDER` and `AI_MEMORY_MODEL` |
 | `classification` | A classification model through the SDK's `Classification`: TypeSafe, OpenAI, OpenRouter, or an OpenAI-compatible server with a `decisions` endpoint |
 
 You can also bind your own `Eznix86\AI\Memory\Contracts\DecidesDuplicates`.
@@ -277,9 +277,11 @@ Gate::policy(AgentMemory::class, AgentMemoryPolicy::class);
 
 ## Models
 
-Nothing in the package depends on a specific model. Set the provider and model of the memory agents (decider, extractor, consolidator, agent permission guard) with `MEMORY_PROVIDER` and `MEMORY_MODEL`, or leave them empty to use the defaults of `config/ai.php`. The text model needs structured output.
+Nothing in the package depends on a specific model. Set the provider and model of the memory agents (decider, extractor, consolidator, agent permission guard) with `AI_MEMORY_PROVIDER` and `AI_MEMORY_MODEL`, or leave them empty to use the defaults of `config/ai.php`. The text model needs structured output.
 
-These are small tasks, but very small models make more mistakes on them. Check the model you choose with the live test suite (see [Contributing](#contributing)). Raise `MEMORY_TIMEOUT` for slow local models.
+Memories are embedded with the embeddings default of `config/ai.php`. To embed them with another provider or model, for example a multilingual one, set `AI_MEMORY_EMBEDDINGS_PROVIDER` and `AI_MEMORY_EMBEDDINGS_MODEL`.
+
+These are small tasks, but very small models make more mistakes on them. Check the model you choose with the live test suite (see [Contributing](#contributing)). Raise `AI_MEMORY_TIMEOUT` for slow local models.
 
 ## Languages
 
@@ -289,7 +291,7 @@ The package works in any language. For languages other than English, check four 
 |---|---|---|
 | Prompts | Blade views, see [Customizing prompts and messages](#customizing-prompts-and-messages). They tell the model to keep facts in the user's language, so they also work for other languages | English |
 | Short messages: tool results, rejection reasons, schema descriptions | Lang files. They follow the app locale | English |
-| Keyword search | `MEMORY_FULLTEXT_LANGUAGE`: a PostgreSQL text search configuration such as `french`, or `simple` for several languages. PostgreSQL does not split Chinese, Japanese or Korean into words, so there recall relies on the meaning search, or on an extension such as zhparser | `english` |
+| Keyword search | `AI_MEMORY_FULLTEXT_LANGUAGE`: a PostgreSQL text search configuration such as `french`, or `simple` for several languages. PostgreSQL does not split Chinese, Japanese or Korean into words, so there recall relies on the meaning search, or on an extension such as zhparser | `english` |
 | Instruction and password patterns | `instruction_patterns` and `password_patterns` in `config/memory.php`. Add your users' languages, or use the permission guard, which works in any language | English |
 
 The extraction check compares Chinese and Japanese text character by character, and other text by pairs of letters, so it works with and without spaces. Recall by meaning depends on your embedding model: pick a multilingual one if your users do not write in English.
@@ -322,17 +324,18 @@ Every option is documented in `config/memory.php`. The ones you are most likely 
 
 | Env | Default | What it does |
 |---|---|---|
-| `MEMORY_DIMENSIONS` | `1536` | Embedding size. Must match your embedding model |
-| `MEMORY_PROVIDER`, `MEMORY_MODEL` | `config/ai.php` defaults | Model of the memory agents |
-| `MEMORY_TIMEOUT` | `120` | Seconds one answer of a memory agent may take |
-| `MEMORY_DECIDER` | `agent` | `agent` or `classification` |
-| `MEMORY_PERMISSION_GUARD` | `none` | `none`, `agent` or `classification` |
-| `MEMORY_CLASSIFICATION_PROVIDER`, `MEMORY_CLASSIFICATION_MODEL` | `config/ai.php` defaults | Model of the classification decider and guard |
-| `MEMORY_FULLTEXT_LANGUAGE` | `english` | PostgreSQL text search configuration |
-| `MEMORY_EXTRACTION` | `true` | Extract facts after each turn |
-| `MEMORY_QUEUE` | default queue | Queue of the extraction and consolidation jobs |
-| `MEMORY_LOADED_LIMIT` | `30` | Memories added to the instructions |
-| `MEMORY_MAX_LIVE` | `500` | Live memories per context before the weakest are archived |
+| `AI_MEMORY_EMBEDDINGS_PROVIDER`, `AI_MEMORY_EMBEDDINGS_MODEL` | `config/ai.php` defaults | Provider and model that embed the memories |
+| `AI_MEMORY_DIMENSIONS` | the provider's size | Vector size. Set it only when the provider reports none, such as Ollama |
+| `AI_MEMORY_PROVIDER`, `AI_MEMORY_MODEL` | `config/ai.php` defaults | Model of the memory agents |
+| `AI_MEMORY_TIMEOUT` | `120` | Seconds one answer of a memory agent may take |
+| `AI_MEMORY_DECIDER` | `agent` | `agent` or `classification` |
+| `AI_MEMORY_PERMISSION_GUARD` | `none` | `none`, `agent` or `classification` |
+| `AI_MEMORY_CLASSIFICATION_PROVIDER`, `AI_MEMORY_CLASSIFICATION_MODEL` | `config/ai.php` defaults | Model of the classification decider and guard |
+| `AI_MEMORY_FULLTEXT_LANGUAGE` | `english` | PostgreSQL text search configuration |
+| `AI_MEMORY_EXTRACTION` | `true` | Extract facts after each turn |
+| `AI_MEMORY_QUEUE` | default queue | Queue of the extraction and consolidation jobs |
+| `AI_MEMORY_LOADED_LIMIT` | `30` | Memories added to the instructions |
+| `AI_MEMORY_MAX_LIVE` | `500` | Live memories per context before the weakest are archived |
 
 ## Testing your application
 
@@ -379,9 +382,9 @@ cp .env.example .env
 ./vendor/bin/pest
 ```
 
-With `MEMORY_TEST_DB_HOST` set, the tests use that database. Without it, they start a pgvector container with [Testcontainers](https://testcontainers.com), so Docker must be running.
+With `DB_HOST` set, the tests use that database. Without it, they start a pgvector container with [Testcontainers](https://testcontainers.com), so Docker must be running.
 
-The tests in `tests/Integration` call real models with cases in English, French, Chinese and Japanese. They are skipped unless `MEMORY_LIVE=1`. Set the models in `.env` and run:
+This runs the unit and feature tests, which call no model. The tests in `tests/Integration` call real models with cases in English, French, Chinese and Japanese. They use the same `AI_MEMORY_*` settings as an application, and the provider keys of `config/ai.php`. Set at least `AI_MEMORY_PROVIDER` and `AI_MEMORY_MODEL` in `.env`, then run:
 
 ```bash
 ./vendor/bin/pest --testsuite=Integration

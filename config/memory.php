@@ -15,24 +15,28 @@ return [
     |
     */
 
-    'table' => env('MEMORY_TABLE', 'agent_memories'),
+    'table' => env('AI_MEMORY_TABLE', 'agent_memories'),
 
     /*
     |--------------------------------------------------------------------------
-    | Embedding Dimensions
+    | Embeddings
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the number of dimensions of the embedding vectors.
-    | It must match the output of your embedding model, and it is read when
-    | the migration creates the table, so a later change needs a migration.
-    |
-    | Common values: 1536 (OpenAI text-embedding-3-small), 3072 (OpenAI
-    |                text-embedding-3-large, Gemini), 1024 (Cohere v3),
-    |                768 (Ollama nomic-embed-text, embeddinggemma)
+    | Here you may specify the provider and model that embed the memories,
+    | if they differ from the embeddings defaults of config/ai.php, such as
+    | a multilingual model for memory only. The dimensions are the size of
+    | the vectors. Leave them empty to use the size the provider reports,
+    | which the SDK also uses to embed. The migration reads them, so a
+    | later change needs a migration. An Ollama provider reports no size:
+    | set its embeddings dimensions in config/ai.php, or here.
     |
     */
 
-    'dimensions' => (int) env('MEMORY_DIMENSIONS', 1536),
+    'embeddings_provider' => env('AI_MEMORY_EMBEDDINGS_PROVIDER') ?: null,
+
+    'embeddings_model' => env('AI_MEMORY_EMBEDDINGS_MODEL') ?: null,
+
+    'dimensions' => env('AI_MEMORY_DIMENSIONS') ? (int) env('AI_MEMORY_DIMENSIONS') : null,
 
     /*
     |--------------------------------------------------------------------------
@@ -51,7 +55,7 @@ return [
     |
     */
 
-    'fulltext_language' => env('MEMORY_FULLTEXT_LANGUAGE', 'english'),
+    'fulltext_language' => env('AI_MEMORY_FULLTEXT_LANGUAGE', 'english'),
 
     /*
     |--------------------------------------------------------------------------
@@ -65,7 +69,7 @@ return [
     |
     */
 
-    'loaded_limit' => (int) env('MEMORY_LOADED_LIMIT', 30),
+    'loaded_limit' => (int) env('AI_MEMORY_LOADED_LIMIT', 30),
 
     /*
     |--------------------------------------------------------------------------
@@ -80,9 +84,9 @@ return [
     |
     */
 
-    'recall_limit' => (int) env('MEMORY_RECALL_LIMIT', 8),
+    'recall_limit' => (int) env('AI_MEMORY_RECALL_LIMIT', 8),
 
-    'recall_min_similarity' => (float) env('MEMORY_RECALL_MIN_SIMILARITY', 0.3),
+    'recall_min_similarity' => (float) env('AI_MEMORY_RECALL_MIN_SIMILARITY', 0.3),
 
     /*
     |--------------------------------------------------------------------------
@@ -98,11 +102,11 @@ return [
     |
     */
 
-    'provider' => env('MEMORY_PROVIDER') ?: null,
+    'provider' => env('AI_MEMORY_PROVIDER') ?: null,
 
-    'model' => env('MEMORY_MODEL') ?: null,
+    'model' => env('AI_MEMORY_MODEL') ?: null,
 
-    'timeout' => (int) env('MEMORY_TIMEOUT', 120),
+    'timeout' => (int) env('AI_MEMORY_TIMEOUT', 120),
 
     /*
     |--------------------------------------------------------------------------
@@ -123,11 +127,11 @@ return [
     |
     */
 
-    'decider' => env('MEMORY_DECIDER', 'agent'),
+    'decider' => env('AI_MEMORY_DECIDER', 'agent'),
 
-    'classification_provider' => env('MEMORY_CLASSIFICATION_PROVIDER') ?: null,
+    'classification_provider' => env('AI_MEMORY_CLASSIFICATION_PROVIDER') ?: null,
 
-    'classification_model' => env('MEMORY_CLASSIFICATION_MODEL') ?: null,
+    'classification_model' => env('AI_MEMORY_CLASSIFICATION_MODEL') ?: null,
 
     /*
     |--------------------------------------------------------------------------
@@ -171,7 +175,7 @@ return [
     |
     */
 
-    'permission_guard' => env('MEMORY_PERMISSION_GUARD', 'none'),
+    'permission_guard' => env('AI_MEMORY_PERMISSION_GUARD', 'none'),
 
     /*
     |--------------------------------------------------------------------------
@@ -187,9 +191,9 @@ return [
     |
     */
 
-    'extraction' => (bool) env('MEMORY_EXTRACTION', true),
+    'extraction' => (bool) env('AI_MEMORY_EXTRACTION', true),
 
-    'queue' => env('MEMORY_QUEUE') ?: null,
+    'queue' => env('AI_MEMORY_QUEUE') ?: null,
 
     /*
     |--------------------------------------------------------------------------
@@ -205,9 +209,9 @@ return [
     |
     */
 
-    'duplicate_similarity' => (float) env('MEMORY_DUPLICATE_SIMILARITY', 0.75),
+    'duplicate_similarity' => (float) env('AI_MEMORY_DUPLICATE_SIMILARITY', 0.75),
 
-    'max_live' => (int) env('MEMORY_MAX_LIVE', 500),
+    'max_live' => (int) env('AI_MEMORY_MAX_LIVE', 500),
 
     /*
     |--------------------------------------------------------------------------
@@ -224,8 +228,8 @@ return [
     |
     */
 
-    'consolidation_threshold' => (int) env('MEMORY_CONSOLIDATION_THRESHOLD', 6),
+    'consolidation_threshold' => (int) env('AI_MEMORY_CONSOLIDATION_THRESHOLD', 6),
 
-    'archive_below' => (float) env('MEMORY_ARCHIVE_BELOW', 0.05),
+    'archive_below' => (float) env('AI_MEMORY_ARCHIVE_BELOW', 0.05),
 
 ];
