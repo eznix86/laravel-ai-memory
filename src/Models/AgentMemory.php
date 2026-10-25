@@ -42,7 +42,7 @@ class AgentMemory extends Model
     /**
      * The strength formula in SQL, with the half-lives of MemoryKind::halfLife().
      */
-    public const string STRENGTH_SQL = "least(1, importance * power(0.5, extract(epoch from (?::timestamp - coalesce(last_used_at, created_at))) / 86400 / (case kind when 'preference' then 180 when 'process' then 365 when 'correction' then 365 when 'customer_note' then 120 when 'lesson' then 90 when 'context' then 21 end)) * (1 + 0.1 * least(recall_count, 10)))";
+    public const string STRENGTH_SQL = "least(1, importance * power(0.5, extract(epoch from (?::timestamp - coalesce(last_used_at, created_at))) / 86400 / (case kind when 'preference' then 180 when 'profile' then 365 when 'process' then 365 when 'correction' then 365 when 'customer_note' then 120 when 'lesson' then 90 when 'context' then 21 end)) * (1 + 0.1 * least(recall_count, 10)))";
 
     /**
      * The attributes that aren't mass assignable.

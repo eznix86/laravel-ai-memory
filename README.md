@@ -154,10 +154,11 @@ public function memory(): MemoryContext
 }
 ```
 
-Each memory has a **kind**. Preferences belong to one user. The other kinds are shared by everyone in the owner.
+Each memory has a **kind**. Profile facts and preferences belong to one user. The other kinds are shared by everyone in the owner.
 
 | Kind | Example |
 |---|---|
+| `profile` | The user is a chemistry student and uses Arch Linux. |
 | `preference` | The user prefers short answers. |
 | `process` | Refunds above 500 francs need a manager. |
 | `correction` | The Geneva office closed in 2025. |

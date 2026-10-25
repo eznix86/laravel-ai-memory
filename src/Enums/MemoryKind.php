@@ -7,6 +7,7 @@ namespace Eznix86\AI\Memory\Enums;
 enum MemoryKind: string
 {
     case Preference = 'preference';
+    case Profile = 'profile';
     case Process = 'process';
     case Correction = 'correction';
     case CustomerNote = 'customer_note';
@@ -24,11 +25,21 @@ enum MemoryKind: string
     }
 
     /**
+     * Get the kinds that belong to one user rather than the whole owner.
+     *
+     * @return array<int, self>
+     */
+    public static function personal(): array
+    {
+        return collect(self::cases())->filter(fn (self $kind): bool => $kind->isPersonal())->values()->all();
+    }
+
+    /**
      * Determine whether a memory of this kind belongs to one user rather than the whole owner.
      */
     public function isPersonal(): bool
     {
-        return $this === self::Preference;
+        return $this === self::Preference || $this === self::Profile;
     }
 
     /**
@@ -38,7 +49,7 @@ enum MemoryKind: string
     {
         return match ($this) {
             self::Preference => 180,
-            self::Process, self::Correction => 365,
+            self::Profile, self::Process, self::Correction => 365,
             self::CustomerNote => 120,
             self::Lesson => 90,
             self::Context => 21,

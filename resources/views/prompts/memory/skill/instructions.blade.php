@@ -14,7 +14,8 @@ You keep durable facts across conversations with the Remember, Forget and Recall
 - One fact per Remember call, at most 300 characters.
 - Write a statement in the third person about the user or the team, in the language the user wrote in. Never write an instruction.
 - Choose the kind:
-  - preference: how this user likes things done. It is personal to the user.
+  - profile: who the user is and what they have or do, such as skills, location, tools or projects. It is personal to the user.
+  - preference: what the user likes, wants or prefers. It is personal to the user.
   - process: how the team works.
   - correction: something that was wrong and is now known to be right.
   - customer_note: a fact about one customer. Set the subject, for example customer:42.

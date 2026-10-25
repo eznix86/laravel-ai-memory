@@ -129,3 +129,14 @@ test('a template in the application views overrides the package template', funct
         File::deleteDirectory(resource_path('views/prompts'));
     }
 });
+
+test('a weak profile fact about the user is always loaded', function (): void {
+    $context = new MemoryContext(user: user(), owner: workspace());
+    collect(range(1, 30))->each(fn (int $i): AgentMemory => memory($context, "Strong lesson {$i}.", attributes: ['importance' => 1]));
+    $profile = memory($context, 'The user is a chemistry student.', MemoryKind::Profile, ['importance' => 0.01]);
+
+    AssistantAgent::fake(['Done.']);
+    (new AssistantAgent($context))->prompt('Hi');
+
+    expect(loadedIds(AssistantAgent::$instructions[0]))->toContain($profile->id);
+});

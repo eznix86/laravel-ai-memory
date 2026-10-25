@@ -57,7 +57,7 @@ class WithMemory
     }
 
     /**
-     * Load the user's preferences, the memories most relevant to the conversation, then the strongest ones, and mark them as used.
+     * Load the user's personal memories, the memories most relevant to the conversation, then the strongest ones, and mark them as used.
      *
      * @return Collection<int, AgentMemory>
      */
@@ -65,7 +65,7 @@ class WithMemory
     {
         $limit = $this->limit ?? config('memory.loaded_limit');
 
-        $preferences = $this->live()->where('kind', MemoryKind::Preference)->when(
+        $preferences = $this->live()->whereIn('kind', MemoryKind::personal())->when(
             $this->context->user,
             fn (Builder $query, Model $user) => $query->whereBelongsToUser($user),
             fn (Builder $query) => $query->whereRaw('false'),
