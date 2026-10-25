@@ -31,8 +31,13 @@ test('the feature tests run on the defaults of the config file', function (): vo
 });
 
 test('empty provider and model settings fall back to the application defaults', function (): void {
-    putenv('AI_MEMORY_PROVIDER=');
-    putenv('AI_MEMORY_MODEL=');
+    $keys = ['AI_MEMORY_PROVIDER', 'AI_MEMORY_MODEL'];
+    $saved = [$_ENV, $_SERVER, array_map(getenv(...), $keys)];
+
+    foreach ($keys as $key) {
+        $_ENV[$key] = $_SERVER[$key] = '';
+        putenv("{$key}=");
+    }
 
     try {
         $config = require __DIR__.'/../../config/memory.php';
@@ -40,8 +45,11 @@ test('empty provider and model settings fall back to the application defaults', 
         expect($config['provider'])->toBeNull()
             ->and($config['model'])->toBeNull();
     } finally {
-        putenv('AI_MEMORY_PROVIDER');
-        putenv('AI_MEMORY_MODEL');
+        [$_ENV, $_SERVER] = $saved;
+
+        foreach ($keys as $index => $key) {
+            putenv($saved[2][$index] === false ? $key : "{$key}={$saved[2][$index]}");
+        }
     }
 });
 
