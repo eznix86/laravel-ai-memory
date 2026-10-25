@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eznix86\AI\Memory\Agents;
 
 use Eznix86\AI\Memory\Agents\Concerns\AsksMemoryModel;
+use Eznix86\AI\Memory\Prompt;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Agent;
@@ -17,7 +18,7 @@ class MemoryConsolidator implements Agent, HasStructuredOutput
 
     public function instructions(): Stringable|string
     {
-        return trim(view('prompts.memory.agents.consolidator')->render());
+        return Prompt::render('prompts.memory.agents.consolidator');
     }
 
     public function schema(JsonSchema $schema): array

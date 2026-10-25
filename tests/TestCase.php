@@ -29,13 +29,13 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUpBeforeClass();
 
-        if (getenv('MEMORY_TEST_DB_HOST')) {
+        if (env('MEMORY_TEST_DB_HOST')) {
             static::$database = [
-                'host' => getenv('MEMORY_TEST_DB_HOST'),
-                'port' => (int) (getenv('MEMORY_TEST_DB_PORT') ?: 5432),
-                'database' => getenv('MEMORY_TEST_DB_DATABASE') ?: 'memory_test',
-                'username' => getenv('MEMORY_TEST_DB_USERNAME') ?: 'postgres',
-                'password' => (string) getenv('MEMORY_TEST_DB_PASSWORD'),
+                'host' => env('MEMORY_TEST_DB_HOST'),
+                'port' => (int) env('MEMORY_TEST_DB_PORT', 5432),
+                'database' => env('MEMORY_TEST_DB_DATABASE', 'memory_test'),
+                'username' => env('MEMORY_TEST_DB_USERNAME', 'postgres'),
+                'password' => (string) env('MEMORY_TEST_DB_PASSWORD', ''),
             ];
 
             return;

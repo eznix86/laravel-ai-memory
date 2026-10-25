@@ -8,9 +8,12 @@ use Closure;
 use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\Prompt;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Laravel\Ai\Gateway\StepResult;
 use Laravel\Ai\PendingStep;
 
@@ -38,7 +41,7 @@ class WithMemory
     {
         $key = (string) $step->invocationId;
 
-        if (! array_key_exists($key, $this->loaded)) {
+        if (! Arr::exists($this->loaded, $key)) {
             $this->loaded[$key] = $this->render($this->load());
         }
 
@@ -46,7 +49,7 @@ class WithMemory
             return $next($step);
         }
 
-        return $next($step->withInstructions(trim($step->instructions."\n\n".$this->loaded[$key])));
+        return $next($step->withInstructions(Str::trim($step->instructions."\n\n".$this->loaded[$key])));
     }
 
     /**
@@ -106,6 +109,6 @@ class WithMemory
             return null;
         }
 
-        return trim(view('prompts.memory.instructions', ['memories' => $memories])->render());
+        return Prompt::render('prompts.memory.instructions', ['memories' => $memories]);
     }
 }

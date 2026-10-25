@@ -198,7 +198,7 @@ class MemoryWriter
      */
     public static function subject(mixed $subject): ?string
     {
-        return is_string($subject) && preg_match(self::SUBJECT_PATTERN, $subject) ? $subject : null;
+        return is_string($subject) && Str::isMatch(self::SUBJECT_PATTERN, $subject) ? $subject : null;
     }
 
     /**
@@ -208,10 +208,8 @@ class MemoryWriter
      */
     public function guardContent(string $content): void
     {
-        foreach (self::INSTRUCTION_PATTERNS as $pattern) {
-            if (preg_match($pattern, $content)) {
-                throw RejectedMemory::instruction();
-            }
+        if (Str::isMatch(self::INSTRUCTION_PATTERNS, $content)) {
+            throw RejectedMemory::instruction();
         }
 
         if ($this->containsCardNumber($content)) {
@@ -222,13 +220,11 @@ class MemoryWriter
             throw RejectedMemory::secret('an IBAN');
         }
 
-        foreach (self::API_KEY_PATTERNS as $pattern) {
-            if (preg_match($pattern, $content)) {
-                throw RejectedMemory::secret('an API key or token');
-            }
+        if (Str::isMatch(self::API_KEY_PATTERNS, $content)) {
+            throw RejectedMemory::secret('an API key or token');
         }
 
-        if (preg_match('/\b(password|passwd|pwd|passcode|pin code)\b\s*(is|:|=)\s*\S+/i', $content)) {
+        if (Str::isMatch('/\b(password|passwd|pwd|passcode|pin code)\b\s*(is|:|=)\s*\S+/i', $content)) {
             throw RejectedMemory::secret('a password');
         }
     }
@@ -238,15 +234,8 @@ class MemoryWriter
      */
     protected function containsCardNumber(string $content): bool
     {
-        preg_match_all('/\b\d(?:[ -]?\d){12,18}\b/', $content, $matches);
-
-        foreach ($matches[0] as $match) {
-            if ($this->passesLuhn((string) preg_replace('/\D/', '', $match))) {
-                return true;
-            }
-        }
-
-        return false;
+        return Str::matchAll('/\b\d(?:[ -]?\d){12,18}\b/', $content)
+            ->contains(fn (string $match): bool => $this->passesLuhn((string) Str::replaceMatches('/\D/', '', $match)));
     }
 
     /**
@@ -254,14 +243,9 @@ class MemoryWriter
      */
     protected function passesLuhn(string $digits): bool
     {
-        $sum = 0;
-
-        foreach (array_reverse(str_split($digits)) as $position => $digit) {
-            $value = (int) $digit * ($position % 2 === 1 ? 2 : 1);
-            $sum += $value > 9 ? $value - 9 : $value;
-        }
-
-        return $sum % 10 === 0;
+        return Str::of($digits)->split(1)->reverse()->values()
+            ->map(fn (string $digit, int $position): int => (int) $digit * ($position % 2 === 1 ? 2 : 1))
+            ->sum(fn (int $value): int => $value > 9 ? $value - 9 : $value) % 10 === 0;
     }
 
     /**
@@ -269,19 +253,13 @@ class MemoryWriter
      */
     protected function containsIban(string $content): bool
     {
-        preg_match_all('/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b/', strtoupper($content), $matches);
+        return Str::matchAll('/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b/', Str::upper($content))
+            ->contains(function (string $match): bool {
+                $iban = Str::remove(' ', $match);
+                $rearranged = Str::substr($iban, 4).Str::substr($iban, 0, 4);
 
-        foreach ($matches[0] as $match) {
-            $iban = str_replace(' ', '', $match);
-            $rearranged = substr($iban, 4).substr($iban, 0, 4);
-            $numeric = (string) preg_replace_callback('/[A-Z]/', fn (array $letter): string => (string) (ord($letter[0]) - 55), $rearranged);
-
-            if ($this->mod97($numeric) === 1) {
-                return true;
-            }
-        }
-
-        return false;
+                return $this->mod97((string) Str::replaceMatches('/[A-Z]/', fn (array $letter): string => (string) (ord($letter[0]) - 55), $rearranged)) === 1;
+            });
     }
 
     /**
@@ -289,12 +267,6 @@ class MemoryWriter
      */
     protected function mod97(string $numeric): int
     {
-        $remainder = 0;
-
-        foreach (str_split($numeric, 7) as $chunk) {
-            $remainder = (int) ($remainder.$chunk) % 97;
-        }
-
-        return $remainder;
+        return Str::of($numeric)->split(7)->reduce(fn (int $remainder, string $chunk): int => (int) ($remainder.$chunk) % 97, 0);
     }
 }

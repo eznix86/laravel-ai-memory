@@ -9,6 +9,7 @@ use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Policies\MemoryPolicy;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 
 test('list returns live memories in the context, filtered by kind, subject and text', function (): void {
@@ -82,7 +83,7 @@ test('export holds every memory of the user and nothing else', function (): void
 
     $export = Memories::export($ada);
 
-    expect(array_column($export, 'id'))->toBe([$live->id, $archived->id])
+    expect(Arr::pluck($export, 'id'))->toBe([$live->id, $archived->id])
         ->and($export[0])->not->toHaveKey('embedding');
 });
 

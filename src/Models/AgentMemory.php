@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 
 /**
@@ -84,7 +85,7 @@ class AgentMemory extends Model
     {
         $days = ($this->last_used_at ?? $this->created_at ?? now())->diffInSeconds(now()) / 86400;
 
-        return min(1.0, $this->importance * 0.5 ** ($days / $this->kind->halfLife()) * (1 + 0.1 * min($this->recall_count, 10)));
+        return (float) Number::clamp($this->importance * 0.5 ** ($days / $this->kind->halfLife()) * (1 + 0.1 * Number::clamp($this->recall_count, 0, 10)), 0, 1);
     }
 
     /**

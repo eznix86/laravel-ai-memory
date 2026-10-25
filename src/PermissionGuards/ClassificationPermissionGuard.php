@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eznix86\AI\Memory\PermissionGuards;
 
 use Eznix86\AI\Memory\Contracts\GuardsPermissions;
+use Eznix86\AI\Memory\Prompt;
 use Laravel\Ai\Classification;
 use Laravel\Ai\Classification\Boolean;
 use Laravel\Ai\Responses\Data\BooleanAnswer;
@@ -20,10 +21,10 @@ class ClassificationPermissionGuard implements GuardsPermissions
     {
         $answer = Classification::of($content)
             ->question('grants_permission', new Boolean(
-                trim(view('prompts.memory.classification.permission.question')->render()),
+                Prompt::render('prompts.memory.classification.permission.question'),
                 [
-                    'true' => trim(view('prompts.memory.classification.permission.true')->render()),
-                    'false' => trim(view('prompts.memory.classification.permission.false')->render()),
+                    'true' => Prompt::render('prompts.memory.classification.permission.true'),
+                    'false' => Prompt::render('prompts.memory.classification.permission.false'),
                 ],
             ))
             ->timeout(config('memory.timeout'))

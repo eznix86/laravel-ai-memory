@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eznix86\AI\Memory\Agents;
 
 use Eznix86\AI\Memory\Agents\Concerns\AsksMemoryModel;
+use Eznix86\AI\Memory\Prompt;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
@@ -16,7 +17,7 @@ class MemoryDecider implements Agent, HasStructuredOutput
 
     public function instructions(): Stringable|string
     {
-        return trim(view('prompts.memory.agents.decider')->render());
+        return Prompt::render('prompts.memory.agents.decider');
     }
 
     public function schema(JsonSchema $schema): array

@@ -6,7 +6,9 @@ namespace Eznix86\AI\Memory\Deciders;
 
 use Eznix86\AI\Memory\Contracts\DecidesDuplicates;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\Prompt;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Str;
 use Laravel\Ai\Classification;
 use Laravel\Ai\Classification\Choice;
 use Laravel\Ai\Responses\Data\ChoiceAnswer;
@@ -29,8 +31,8 @@ class ClassificationDecider implements DecidesDuplicates
             ])->all(),
         ];
 
-        $answer = Classification::of(view('prompts.memory.agents.decider-prompt', ['memory' => $memory, 'candidates' => $candidates])->render())
-            ->question('decision', new Choice(trim(view('prompts.memory.classification.decider')->render()), $options))
+        $answer = Classification::of(Prompt::render('prompts.memory.agents.decider-prompt', ['memory' => $memory, 'candidates' => $candidates]))
+            ->question('decision', new Choice(Prompt::render('prompts.memory.classification.decider'), $options))
             ->timeout(config('memory.timeout'))
             ->classify(config('memory.classification_provider'), config('memory.classification_model'))
             ->answer('decision');
@@ -39,7 +41,7 @@ class ClassificationDecider implements DecidesDuplicates
 
         return match (true) {
             $choice === 'noop' => ['decision' => 'noop', 'replace_id' => null],
-            str_starts_with($choice, 'replace_') => ['decision' => 'update', 'replace_id' => (int) substr($choice, 8)],
+            Str::startsWith($choice, 'replace_') => ['decision' => 'update', 'replace_id' => (int) Str::after($choice, 'replace_')],
             default => ['decision' => 'add', 'replace_id' => null],
         };
     }

@@ -6,6 +6,7 @@ namespace Eznix86\AI\Memory\Tools;
 
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\Prompt;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -25,7 +26,7 @@ class Forget implements Tool
      */
     public function description(): Stringable|string
     {
-        return trim(view('prompts.memory.tools.forget')->render());
+        return Prompt::render('prompts.memory.tools.forget');
     }
 
     /**

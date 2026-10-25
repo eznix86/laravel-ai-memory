@@ -14,6 +14,16 @@ enum MemoryKind: string
     case Context = 'context';
 
     /**
+     * Get the value of every kind.
+     *
+     * @return array<int, string>
+     */
+    public static function values(): array
+    {
+        return collect(self::cases())->map(fn (self $kind): string => $kind->value)->values()->all();
+    }
+
+    /**
      * Determine whether a memory of this kind belongs to one user rather than the whole tenant.
      */
     public function isPersonal(): bool

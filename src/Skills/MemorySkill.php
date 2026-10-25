@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eznix86\AI\Memory\Skills;
 
+use Eznix86\AI\Memory\Prompt;
 use Laravel\Ai\Skills\Skill;
 
 final class MemorySkill
@@ -15,7 +16,7 @@ final class MemorySkill
     {
         return new Skill(
             'memory',
-            trim(view('prompts.memory.skill.description')->render()),
+            Prompt::render('prompts.memory.skill.description'),
             view('prompts.memory.skill.instructions'),
         );
     }

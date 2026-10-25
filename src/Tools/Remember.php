@@ -8,6 +8,7 @@ use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\Enums\WriteOutcome;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
 use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\Prompt;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -28,7 +29,7 @@ class Remember implements Tool
      */
     public function description(): Stringable|string
     {
-        return trim(view('prompts.memory.tools.remember')->render());
+        return Prompt::render('prompts.memory.tools.remember');
     }
 
     /**
@@ -64,7 +65,7 @@ class Remember implements Tool
     {
         return [
             'kind' => $schema->string()
-                ->enum(array_column(MemoryKind::cases(), 'value'))
+                ->enum(MemoryKind::values())
                 ->description('The kind of fact.')
                 ->required(),
             'content' => $schema->string()

@@ -6,6 +6,7 @@ namespace Eznix86\AI\Memory\Agents;
 
 use Eznix86\AI\Memory\Agents\Concerns\AsksMemoryModel;
 use Eznix86\AI\Memory\Enums\MemoryKind;
+use Eznix86\AI\Memory\Prompt;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Agent;
@@ -20,7 +21,7 @@ class MemoryExtractor implements Agent, HasStructuredOutput
 
     public function instructions(): Stringable|string
     {
-        return trim(view('prompts.memory.agents.extractor')->render());
+        return Prompt::render('prompts.memory.agents.extractor');
     }
 
     public function schema(JsonSchema $schema): array
@@ -29,7 +30,7 @@ class MemoryExtractor implements Agent, HasStructuredOutput
             'facts' => $schema->array()
                 ->max(self::MAX_FACTS)
                 ->items($schema->object([
-                    'kind' => $schema->string()->enum(array_column(MemoryKind::cases(), 'value'))->required(),
+                    'kind' => $schema->string()->enum(MemoryKind::values())->required(),
                     'content' => $schema->string()->description('One fact, at most '.MemoryWriter::MAX_LENGTH.' characters.')->required(),
                     'subject' => $schema->string()->nullable()->required(),
                     'importance' => $schema->number()->min(0)->max(1)->required(),

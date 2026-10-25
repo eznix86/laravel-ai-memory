@@ -9,6 +9,7 @@ use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Eznix86\AI\Memory\Tools\Remember;
+use Illuminate\Support\Arr;
 use Laravel\Ai\Classification;
 use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Responses\Data\ChoiceAnswer;
@@ -96,7 +97,7 @@ test('the classification decider replaces the memory it picks', function (): voi
 
     expect(remember($context, 'The team deploys only on Thursdays.'))->toContain("It replaces #{$old->id}.");
 
-    Classification::assertClassified(fn ($prompt): bool => array_key_exists("replace_{$old->id}", $prompt->questions['decision']->options));
+    Classification::assertClassified(fn ($prompt): bool => Arr::exists($prompt->questions['decision']->options, "replace_{$old->id}"));
     MemoryDecider::assertNeverPrompted();
 });
 

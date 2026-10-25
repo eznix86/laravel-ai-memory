@@ -18,7 +18,7 @@ test('the consolidator keeps what is still true and drops what changed', functio
 
     ConsolidateMemories::dispatchSync($workspace);
 
-    $merged = mb_strtolower((string) AgentMemory::forTenant($workspace)->live()->sole()->content);
+    $merged = Str::lower((string) AgentMemory::forTenant($workspace)->live()->sole()->content);
     expect($merged)->toContain(...$case['must_contain'])
         ->and(Str::contains($merged, $case['must_not_contain']))->toBeFalse();
 })->with(IntegrationTestCase::cases('memory', 'consolidation'));

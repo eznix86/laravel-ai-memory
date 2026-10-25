@@ -14,7 +14,9 @@ use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Services\MemoryManager;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\Facade;
+use Illuminate\Support\Str;
 use Laravel\Ai\Classification;
 use Laravel\Ai\Embeddings;
 use Laravel\Ai\Prompts\EmbeddingsPrompt;
@@ -46,7 +48,7 @@ class Memories extends Facade
      */
     public static function fake(): void
     {
-        Embeddings::fake(fn (EmbeddingsPrompt $prompt): array => array_map(static::embed(...), $prompt->inputs));
+        Embeddings::fake(fn (EmbeddingsPrompt $prompt): array => collect($prompt->inputs)->map(fn (string $input): array => static::embed($input))->all());
 
         MemoryDecider::fake(fn (): array => ['decision' => 'add', 'replace_id' => null]);
         Classification::fake(fn (): array => ['decision' => new ChoiceAnswer('add', ['add' => 1.0]), 'grants_permission' => new BooleanAnswer(0.0)]);
@@ -57,28 +59,24 @@ class Memories extends Facade
     /**
      * Build a unit vector from the words of the text, so texts that share words are similar.
      *
-     * @return list<float>
+     * @return array<int, float>
      */
     public static function embed(string $text): array
     {
         $dimensions = config('memory.dimensions');
 
-        $vector = array_fill(0, $dimensions, 0.0);
+        $counts = Str::matchAll("/[a-z'-]+/", Str::lower($text))
+            ->diff(['the', 'and', 'for', 'are', 'our', 'that', 'this', 'with', 'does', 'has', 'have', 'you', 'your'])
+            ->countBy(fn (string $word): int => crc32($word) % $dimensions);
 
-        $words = array_diff(str_word_count(strtolower($text), 1), ['the', 'and', 'for', 'are', 'our', 'that', 'this', 'with', 'does', 'has', 'have', 'you', 'your']);
+        $vector = BaseCollection::times($dimensions, fn (int $position): float => (float) $counts->get($position - 1, 0));
 
-        foreach ($words as $word) {
-            $vector[crc32($word) % $dimensions] += 1.0;
-        }
-
-        $length = sqrt(array_sum(array_map(fn (float $value): float => $value * $value, $vector)));
+        $length = sqrt($vector->sum(fn (float $value): float => $value * $value));
 
         if ($length === 0.0) {
-            $vector[0] = 1.0;
-
-            return array_values($vector);
+            return $vector->put(0, 1.0)->values()->all();
         }
 
-        return array_values(array_map(fn (float $value): float => $value / $length, $vector));
+        return $vector->map(fn (float $value): float => $value / $length)->values()->all();
     }
 }

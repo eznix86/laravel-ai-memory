@@ -6,6 +6,7 @@ namespace Eznix86\AI\Memory\Tools;
 
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\Prompt;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -31,7 +32,7 @@ class RecallMemory implements Tool
      */
     public function description(): Stringable|string
     {
-        return trim(view('prompts.memory.tools.recall-memory')->render());
+        return Prompt::render('prompts.memory.tools.recall-memory');
     }
 
     /**
@@ -47,7 +48,7 @@ class RecallMemory implements Tool
 
         AgentMemory::query()->whereKey($memories->modelKeys())->toBase()->increment('recall_count', 1, ['last_used_at' => now()]);
 
-        return trim(view('prompts.memory.tools.recall-memory-results', ['memories' => $memories])->render());
+        return Prompt::render('prompts.memory.tools.recall-memory-results', ['memories' => $memories]);
     }
 
     /**
@@ -77,7 +78,7 @@ class RecallMemory implements Tool
         }
 
         return AgentMemory::query()
-            ->whereKey(array_keys($scores))
+            ->whereKey(collect($scores)->keys())
             ->get()
             ->sortByDesc(fn (AgentMemory $memory): float => $scores[$memory->id] * $memory->strength())
             ->take(config('memory.recall_limit'))

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use Illuminate\Filesystem\Filesystem;
 use Tests\TestCase;
 
 abstract class IntegrationTestCase extends TestCase
@@ -33,7 +34,7 @@ abstract class IntegrationTestCase extends TestCase
      */
     public static function cases(string $file, string $group): array
     {
-        $cases = json_decode((string) file_get_contents(__DIR__."/cases/{$file}.json"), true)[$group];
+        $cases = (new Filesystem)->json(__DIR__."/cases/{$file}.json")[$group];
 
         return collect($cases)->mapWithKeys(fn (array $case, int $index): array => [
             ($case['id'] ?? $case['fact'] ?? "#{$index}").(($case['holdout'] ?? false) ? ' (holdout)' : '') => [$case],
@@ -42,7 +43,7 @@ abstract class IntegrationTestCase extends TestCase
 
     protected static function live(): bool
     {
-        return (bool) getenv('MEMORY_LIVE');
+        return (bool) env('MEMORY_LIVE', false);
     }
 
     #[\Override]
@@ -50,13 +51,13 @@ abstract class IntegrationTestCase extends TestCase
     {
         parent::defineEnvironment($app);
 
-        $provider = getenv('MEMORY_LIVE_PROVIDER') ?: 'ollama';
-        $embeddings = getenv('MEMORY_LIVE_EMBEDDINGS_PROVIDER') ?: $provider;
+        $provider = env('MEMORY_LIVE_PROVIDER', 'ollama');
+        $embeddings = env('MEMORY_LIVE_EMBEDDINGS_PROVIDER', $provider);
 
         $app['config']->set('ai.default', $provider);
         $app['config']->set('ai.default_for_embeddings', $embeddings);
-        $app['config']->set("ai.providers.{$provider}.models.text.default", getenv('MEMORY_LIVE_CHAT_MODEL') ?: null);
-        $app['config']->set("ai.providers.{$embeddings}.models.embeddings.default", getenv('MEMORY_LIVE_EMBEDDINGS_MODEL') ?: null);
+        $app['config']->set("ai.providers.{$provider}.models.text.default", env('MEMORY_LIVE_CHAT_MODEL'));
+        $app['config']->set("ai.providers.{$embeddings}.models.embeddings.default", env('MEMORY_LIVE_EMBEDDINGS_MODEL'));
         $app['config']->set("ai.providers.{$embeddings}.models.embeddings.dimensions", config('memory.dimensions'));
     }
 }

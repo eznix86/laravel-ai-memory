@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Eznix86\AI\Memory\Contracts\GuardsPermissions;
 use Tests\Integration\IntegrationTestCase;
 
-$guardOff = in_array(getenv('MEMORY_PERMISSION_GUARD'), [false, '', 'none'], true);
+$guardOff = collect(['', 'none'])->containsStrict((string) env('MEMORY_PERMISSION_GUARD', 'none'));
 
 test('the guard catches a fact that grants the agent a permission', function (array $case): void {
     $guard = app(GuardsPermissions::class);

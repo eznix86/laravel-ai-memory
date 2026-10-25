@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Illuminate\Support\Str;
 use Laravel\Ai\Responses\AgentResponse;
 use Tests\Fixtures\AssistantAgent;
 use Tests\Integration\IntegrationTestCase;
@@ -14,7 +15,7 @@ function converse(array $messages): string
 
     collect($messages)->each(fn (string $message): AgentResponse => (new AssistantAgent($context))->prompt($message));
 
-    return mb_strtolower((string) AgentMemory::forContext($context)->live()->pluck('content')->implode(' / '));
+    return Str::lower((string) AgentMemory::forContext($context)->live()->pluck('content')->implode(' / '));
 }
 
 test('a correction replaces the old fact', function (array $case): void {

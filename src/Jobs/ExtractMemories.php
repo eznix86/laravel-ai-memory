@@ -7,6 +7,7 @@ namespace Eznix86\AI\Memory\Jobs;
 use Eznix86\AI\Memory\Agents\MemoryExtractor;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
 use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\Prompt;
 use Eznix86\AI\Memory\Services\Grounding;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Illuminate\Bus\Queueable;
@@ -40,28 +41,27 @@ class ExtractMemories implements ShouldQueue
     {
         $context = new MemoryContext($this->tenant, $this->user, $this->conversationId);
 
-        $answer = (new MemoryExtractor)->ask(view('prompts.memory.agents.extractor-prompt', [
+        $answer = (new MemoryExtractor)->ask(Prompt::render('prompts.memory.agents.extractor-prompt', [
             'message' => $this->message,
             'reply' => $this->reply,
-        ])->render());
+        ]));
 
-        foreach (array_slice($answer['facts'] ?? [], 0, MemoryExtractor::MAX_FACTS) as $fact) {
-            if (! $grounding->isGrounded((string) ($fact['content'] ?? ''), $this->message)) {
-                continue;
-            }
-
-            try {
-                $writer->write($context, [
-                    'kind' => $fact['kind'] ?? null,
-                    'content' => $fact['content'] ?? null,
-                    'subject' => MemoryWriter::subject($fact['subject'] ?? null),
-                    'importance' => $fact['importance'] ?? null,
-                    'source' => 'extraction',
-                    'personal' => null,
-                ]);
-            } catch (RejectedMemory) {
-                continue;
-            }
-        }
+        collect((array) ($answer['facts'] ?? []))
+            ->take(MemoryExtractor::MAX_FACTS)
+            ->filter(fn (array $fact): bool => $grounding->isGrounded((string) ($fact['content'] ?? ''), $this->message))
+            ->each(function (array $fact) use ($writer, $context): void {
+                try {
+                    $writer->write($context, [
+                        'kind' => $fact['kind'] ?? null,
+                        'content' => $fact['content'] ?? null,
+                        'subject' => MemoryWriter::subject($fact['subject'] ?? null),
+                        'importance' => $fact['importance'] ?? null,
+                        'source' => 'extraction',
+                        'personal' => null,
+                    ]);
+                } catch (RejectedMemory) {
+                    return;
+                }
+            });
     }
 }

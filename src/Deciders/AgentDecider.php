@@ -7,6 +7,7 @@ namespace Eznix86\AI\Memory\Deciders;
 use Eznix86\AI\Memory\Agents\MemoryDecider;
 use Eznix86\AI\Memory\Contracts\DecidesDuplicates;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\Prompt;
 use Illuminate\Database\Eloquent\Collection;
 
 class AgentDecider implements DecidesDuplicates
@@ -19,13 +20,13 @@ class AgentDecider implements DecidesDuplicates
      */
     public function decide(AgentMemory $memory, Collection $candidates): array
     {
-        $answer = (new MemoryDecider)->ask(view('prompts.memory.agents.decider-prompt', [
+        $answer = (new MemoryDecider)->ask(Prompt::render('prompts.memory.agents.decider-prompt', [
             'memory' => $memory,
             'candidates' => $candidates,
-        ])->render());
+        ]));
 
         return [
-            'decision' => in_array($answer['decision'] ?? null, ['add', 'update', 'noop'], true) ? $answer['decision'] : 'add',
+            'decision' => collect(['add', 'update', 'noop'])->containsStrict($answer['decision'] ?? null) ? $answer['decision'] : 'add',
             'replace_id' => isset($answer['replace_id']) ? (int) $answer['replace_id'] : null,
         ];
     }

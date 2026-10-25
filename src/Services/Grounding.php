@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Eznix86\AI\Memory\Services;
 
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+
 class Grounding
 {
     public const float MIN_OVERLAP = 0.5;
@@ -26,13 +29,11 @@ class Grounding
     {
         $words = $this->words($fact);
 
-        if ($words === []) {
+        if ($words->isEmpty()) {
             return false;
         }
 
-        $own = $this->words($this->withoutQuotes($message));
-
-        return count(array_intersect($words, $own)) / count($words) >= self::MIN_OVERLAP;
+        return $words->intersect($this->words($this->withoutQuotes($message)))->count() / $words->count() >= self::MIN_OVERLAP;
     }
 
     /**
@@ -40,7 +41,7 @@ class Grounding
      */
     public function withoutQuotes(string $message): string
     {
-        return (string) preg_replace([
+        return (string) Str::replaceMatches([
             '/```.*?```/s',
             '/^\s*>.*$/m',
             '/"[^"]*"|“[^”]*”|«[^»]*»/u',
@@ -49,22 +50,17 @@ class Grounding
     }
 
     /**
-     * Get the distinct meaningful words of the text.
+     * Get the distinct meaningful words of the text, without a plural "s".
      *
-     * @return list<string>
+     * @return Collection<int, string>
      */
-    protected function words(string $text): array
+    protected function words(string $text): Collection
     {
-        preg_match_all('/[\p{L}\p{N}]+/u', mb_strtolower($text), $matches);
-
-        $words = array_filter(
-            $matches[0],
-            fn (string $word): bool => (mb_strlen($word) >= 3 || is_numeric($word)) && ! in_array($word, self::IGNORED, true),
-        );
-
-        return array_values(array_unique(array_map(
-            fn (string $word): string => mb_strlen($word) > 3 ? (string) preg_replace('/s$/u', '', $word) : $word,
-            $words,
-        )));
+        return Str::matchAll('/[\p{L}\p{N}]+/u', Str::lower($text))
+            ->filter(fn (string $word): bool => Str::length($word) >= 3 || is_numeric($word))
+            ->diff(self::IGNORED)
+            ->map(fn (string $word): string => Str::length($word) > 3 ? Str::replaceEnd('s', '', $word) : $word)
+            ->unique()
+            ->values();
     }
 }

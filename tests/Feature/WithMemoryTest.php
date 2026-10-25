@@ -6,14 +6,13 @@ use Eznix86\AI\Memory\Enums\MemoryKind;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Laravel\Ai\Responses\Data\ToolCall;
 use Tests\Fixtures\AssistantAgent;
 
 function loadedIds(string $instructions): array
 {
-    preg_match_all('/^#(\d+) /m', $instructions, $matches);
-
-    return array_map(intval(...), $matches[1]);
+    return Str::matchAll('/^#(\d+) /m', $instructions)->map(fn (string $id): int => (int) $id)->all();
 }
 
 test('memories are rendered under the heading as id, kind and content', function (): void {

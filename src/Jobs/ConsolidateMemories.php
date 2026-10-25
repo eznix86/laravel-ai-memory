@@ -7,6 +7,7 @@ namespace Eznix86\AI\Memory\Jobs;
 use Eznix86\AI\Memory\Agents\MemoryConsolidator;
 use Eznix86\AI\Memory\Exceptions\RejectedMemory;
 use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\Prompt;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -83,10 +84,10 @@ class ConsolidateMemories implements ShouldQueue
 
         $kind = $memories->countBy(fn (AgentMemory $memory): string => $memory->kind->value)->sortDesc()->keys()->first();
 
-        $answer = (new MemoryConsolidator)->ask(view('prompts.memory.agents.consolidator-prompt', [
+        $answer = (new MemoryConsolidator)->ask(Prompt::render('prompts.memory.agents.consolidator-prompt', [
             'subject' => $first->subject,
             'memories' => $memories,
-        ])->render());
+        ]));
 
         try {
             $fact = $writer->validate([
