@@ -25,7 +25,8 @@
         "rector/rector": "^2.3",
         "phpstan/phpstan": "^2.1",
         "larastan/larastan": "^3.9",
-        "laravel/pint": "^1.27"
+        "laravel/pint": "^1.27",
+        "pestphp/pest-plugin-evals": "^5.1"
     },
     "autoload": {
         "psr-4": {

@@ -9,9 +9,9 @@ use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Illuminate\Support\Arr;
+use Tests\Evals\EvalTestCase;
 use Tests\Fixtures\User;
 use Tests\Fixtures\Workspace;
-use Tests\Integration\IntegrationTestCase;
 use Tests\TestCase;
 
 /*
@@ -31,9 +31,11 @@ pest()->extend(TestCase::class)
     ->beforeEach(fn () => Memories::fake())
     ->in('Feature');
 
-pest()->extend(IntegrationTestCase::class)
-    ->group('integration')
-    ->in('Integration');
+pest()->extend(EvalTestCase::class)
+    ->group('evals')
+    ->in('Evals');
+
+pest()->evals()->judgeUsingLaravelAiClassifier();
 
 /*
 |--------------------------------------------------------------------------
