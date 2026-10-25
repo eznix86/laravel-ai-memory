@@ -40,6 +40,11 @@ use Illuminate\Support\Number;
 class AgentMemory extends Model
 {
     /**
+     * The strength formula in SQL, with the half-lives of MemoryKind::halfLife().
+     */
+    public const string STRENGTH_SQL = "least(1, importance * power(0.5, extract(epoch from (?::timestamp - coalesce(last_used_at, created_at))) / 86400 / (case kind when 'preference' then 180 when 'process' then 365 when 'correction' then 365 when 'customer_note' then 120 when 'lesson' then 90 when 'context' then 21 end)) * (1 + 0.1 * least(recall_count, 10)))";
+
+    /**
      * The attributes that aren't mass assignable.
      *
      * @var list<string>
@@ -91,18 +96,11 @@ class AgentMemory extends Model
     /**
      * Get the SQL expression of the strength, with its bindings.
      *
-     * @return array{0: string, 1: list<string>}
+     * @return array{0: literal-string, 1: list<string>}
      */
     public static function strengthExpression(): array
     {
-        $halfLives = collect(MemoryKind::cases())
-            ->map(fn (MemoryKind $kind): string => "when '{$kind->value}' then {$kind->halfLife()}")
-            ->implode(' ');
-
-        return [
-            "least(1, importance * power(0.5, extract(epoch from (?::timestamp - coalesce(last_used_at, created_at))) / 86400 / (case kind {$halfLives} end)) * (1 + 0.1 * least(recall_count, 10)))",
-            [now()->toDateTimeString()],
-        ];
+        return [self::STRENGTH_SQL, [now()->toDateTimeString()]];
     }
 
     /**
