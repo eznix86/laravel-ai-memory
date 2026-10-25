@@ -18,8 +18,8 @@ return new class extends Migration
 
         Schema::create(config('memory.table'), function (Blueprint $table) {
             $table->id();
-            $table->string('tenant_type');
-            $table->string('tenant_id');
+            $table->string('owner_type');
+            $table->string('owner_id');
             $table->string('user_type')->nullable();
             $table->string('user_id')->nullable();
             $table->string('kind');
@@ -39,8 +39,8 @@ return new class extends Migration
 
             $table->vectorIndex('embedding');
             $table->fullText('content')->language(config('memory.fulltext_language'));
-            $table->index(['tenant_type', 'tenant_id', 'user_type', 'user_id', 'kind']);
-            $table->index(['tenant_type', 'tenant_id', 'subject']);
+            $table->index(['owner_type', 'owner_id', 'user_type', 'user_id', 'kind']);
+            $table->index(['owner_type', 'owner_id', 'subject']);
         });
     }
 

@@ -92,12 +92,12 @@ class MemoryManager
     }
 
     /**
-     * Delete every memory about a subject in the tenant, whatever its state.
+     * Delete every memory about a subject in the owner, whatever its state.
      */
-    public function purge(Model $tenant, string $subject): int
+    public function purge(Model $owner, string $subject): int
     {
         return AgentMemory::query()
-            ->forTenant($tenant)
+            ->forOwner($owner)
             ->where('subject', $subject)
             ->delete();
     }

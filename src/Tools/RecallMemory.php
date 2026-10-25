@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Eznix86\AI\Memory\Tools;
 
-use Eznix86\AI\Memory\Embedder;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Prompt;
+use Eznix86\AI\Memory\Services\MemorySearch;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -17,10 +16,6 @@ use Stringable;
 
 class RecallMemory implements Tool
 {
-    public const int CANDIDATES = 50;
-
-    public const int RRF_K = 60;
-
     /**
      * Create a new tool instance.
      */
@@ -53,54 +48,13 @@ class RecallMemory implements Tool
     }
 
     /**
-     * Rank memories by keyword and by meaning, fuse both rankings and weigh them by strength.
+     * Find the memories most relevant to the query.
      *
      * @return Collection<int, AgentMemory>
      */
     public function search(string $query, bool $includeArchived = false): Collection
     {
-        $keywords = $this->candidates($includeArchived)
-            ->whereFullText('content', $query, ['language' => config('memory.fulltext_language')])
-            ->orderByRaw('ts_rank(to_tsvector(?::regconfig, content), plainto_tsquery(?::regconfig, ?)) desc', [config('memory.fulltext_language'), config('memory.fulltext_language'), $query])
-            ->limit(self::CANDIDATES)
-            ->pluck('id');
-
-        $meanings = $this->candidates($includeArchived)
-            ->whereVectorSimilarTo('embedding', Embedder::embed($query), config('memory.recall_min_similarity'))
-            ->limit(self::CANDIDATES)
-            ->pluck('id');
-
-        $scores = [];
-
-        foreach ([$keywords, $meanings] as $ranking) {
-            foreach ($ranking->values() as $rank => $id) {
-                $scores[$id] = ($scores[$id] ?? 0) + 1 / (self::RRF_K + $rank + 1);
-            }
-        }
-
-        return AgentMemory::query()
-            ->whereKey(collect($scores)->keys())
-            ->get()
-            ->sortByDesc(fn (AgentMemory $memory): float => $scores[$memory->id] * $memory->strength())
-            ->take(config('memory.recall_limit'))
-            ->values();
-    }
-
-    /**
-     * Start a query for the memories that can be recalled.
-     *
-     * @return Builder<AgentMemory>
-     */
-    protected function candidates(bool $includeArchived): Builder
-    {
-        if (! $includeArchived) {
-            return AgentMemory::query()->forContext($this->context)->live();
-        }
-
-        return AgentMemory::query()
-            ->forContext($this->context)
-            ->whereNull('superseded_by')
-            ->where(fn (Builder $query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+        return app(MemorySearch::class)->rank($this->context, $query, config('memory.recall_limit'), $includeArchived);
     }
 
     /**

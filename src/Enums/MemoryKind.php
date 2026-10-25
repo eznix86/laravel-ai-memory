@@ -24,7 +24,7 @@ enum MemoryKind: string
     }
 
     /**
-     * Determine whether a memory of this kind belongs to one user rather than the whole tenant.
+     * Determine whether a memory of this kind belongs to one user rather than the whole owner.
      */
     public function isPersonal(): bool
     {

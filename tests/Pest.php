@@ -91,7 +91,7 @@ function memory(MemoryContext $context, string $content, MemoryKind $kind = Memo
 function seed(MemoryContext $context, string $content, MemoryKind $kind = MemoryKind::Lesson, array $attributes = []): AgentMemory
 {
     $memory = new AgentMemory(['kind' => $kind, 'content' => $content, 'source' => 'test', 'subject' => $attributes['subject'] ?? null]);
-    $memory->tenant()->associate($context->tenant);
+    $memory->owner()->associate($context->owner);
 
     if ($kind->isPersonal()) {
         $memory->user()->associate($context->user);

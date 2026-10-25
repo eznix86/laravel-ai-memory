@@ -64,7 +64,7 @@ test('the keyword search stems words in the configured language', function (): v
     $context = new MemoryContext(workspace());
     $memory = memory($context, 'Le client préfère les appels.');
 
-    $found = (new RecallMemory($context))->search('clients préférés');
+    $found = (new RecallMemory($context))->search('préférés');
 
     expect($found->pluck('id')->all())->toBe([$memory->id]);
 });
@@ -74,7 +74,27 @@ test('the keyword search misses another language stems', function (): void {
     $context = new MemoryContext(workspace());
     memory($context, 'Le client préfère les appels.');
 
-    $found = (new RecallMemory($context))->search('clients préférés');
+    $found = (new RecallMemory($context))->search('préférés');
 
     expect($found)->toBeEmpty();
+});
+
+test('a long question finds a memory that shares only some of its words', function (): void {
+    config(['memory.recall_min_similarity' => 0.99]);
+    $context = new MemoryContext(workspace());
+    $memory = memory($context, 'Invoices for Globex are sent by courier.');
+
+    $found = (new RecallMemory($context))->search('Globex called this morning about their invoices, can you check how we send them?');
+
+    expect($found->pluck('id')->all())->toBe([$memory->id]);
+});
+
+test('relevance ranks first, and strength only breaks ties', function (): void {
+    $context = new MemoryContext(workspace());
+    $exact = memory($context, 'Customer 42 wants invoices in German.', MemoryKind::CustomerNote, ['importance' => 0.05, 'created_at' => now()->subDays(200)]);
+    $partial = memory($context, 'Customer 7 wants invoices in French.', MemoryKind::CustomerNote, ['importance' => 1]);
+
+    $found = (new RecallMemory($context))->search('Which language for the invoices of customer 42, German?');
+
+    expect($found->pluck('id')->all())->toBe([$exact->id, $partial->id]);
 });

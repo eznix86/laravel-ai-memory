@@ -10,14 +10,11 @@ final readonly class MemoryContext
 {
     /**
      * Create a new memory context.
-     *
-     * @param  list<string>  $subjects  Subjects whose memories are always loaded, e.g. "customer:42".
      */
     public function __construct(
-        public Model $tenant,
+        public Model $owner,
         public ?Model $user = null,
-        public ?string $conversationId = null,
-        public array $subjects = [],
+        public ?string $conversation = null,
     ) {}
 
     /**
@@ -25,6 +22,6 @@ final readonly class MemoryContext
      */
     public function source(): string
     {
-        return $this->conversationId === null ? 'agent' : "conversation:{$this->conversationId}";
+        return $this->conversation === null ? 'agent' : "conversation:{$this->conversation}";
     }
 }

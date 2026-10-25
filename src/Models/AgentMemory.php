@@ -17,8 +17,8 @@ use Illuminate\Support\Number;
 
 /**
  * @property int $id
- * @property string $tenant_type
- * @property string $tenant_id
+ * @property string $owner_type
+ * @property string $owner_id
  * @property string|null $user_type
  * @property string|null $user_id
  * @property MemoryKind $kind
@@ -114,11 +114,11 @@ class AgentMemory extends Model
     }
 
     /**
-     * Get the tenant the memory belongs to.
+     * Get the owner the memory belongs to.
      *
      * @return MorphTo<Model, $this>
      */
-    public function tenant(): MorphTo
+    public function owner(): MorphTo
     {
         return $this->morphTo();
     }
@@ -161,7 +161,7 @@ class AgentMemory extends Model
     #[Scope]
     protected function forContext(Builder $query, MemoryContext $context): void
     {
-        $query->forTenant($context->tenant)
+        $query->forOwner($context->owner)
             ->where(function (Builder $query) use ($context): void {
                 $query->whereNull('user_id');
 
@@ -172,14 +172,14 @@ class AgentMemory extends Model
     }
 
     /**
-     * Limit the query to the memories of the given tenant, personal ones included.
+     * Limit the query to the memories of the given owner, personal ones included.
      *
      * @param  Builder<AgentMemory>  $query
      */
     #[Scope]
-    protected function forTenant(Builder $query, Model $tenant): void
+    protected function forOwner(Builder $query, Model $owner): void
     {
-        $query->where('tenant_type', $tenant->getMorphClass())->where('tenant_id', (string) $tenant->getKey());
+        $query->where('owner_type', $owner->getMorphClass())->where('owner_id', (string) $owner->getKey());
     }
 
     /**

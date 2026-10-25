@@ -10,8 +10,8 @@ Memory is not for business data, chat history or secrets. If a new colleague cou
 
 ## Features
 
-- **Scoped**: every memory belongs to a tenant (any Eloquent model) and, when it is personal, to one user. A memory never leaves its tenant.
-- **Loaded every turn**: the 30 strongest memories go into the agent instructions. The agent searches the others by keyword and by meaning.
+- **Scoped**: every memory belongs to an owner (any Eloquent model) and, when it is personal, to one user. A memory never leaves its owner.
+- **Loaded every turn**: the memories that match the conversation, the user's preferences and the strongest memories go into the agent instructions. The agent searches the others by keyword and by meaning.
 - **Learns by itself**: after each turn, a queued job keeps up to 3 facts the user stated. Facts taken from a quoted email or from the agent's own reply are dropped.
 - **Stays clean**: a new fact that repeats a memory is skipped, and one that contradicts a memory replaces it.
 - **Forgets slowly**: unused memories fade, a weekly job merges and archives them, and every change by the agent can be undone. Only people delete.
@@ -37,7 +37,7 @@ composer require eznix86/laravel-ai-memory
 php artisan migrate
 ```
 
-**2. Give your agent a memory.** Build a `MemoryContext` for the current tenant and user, and hand it to the tools and the middleware:
+**2. Give your agent a memory.** Build a `MemoryContext` for the current owner and user, and hand it to the tools and the middleware:
 
 ```php
 use Eznix86\AI\Memory\Contracts\HasMemory;
@@ -64,7 +64,7 @@ class AssistantAgent implements Agent, HasMemory, HasMiddleware, HasTools
         return 'You are a helpful assistant.';
     }
 
-    public function memoryContext(): MemoryContext
+    public function memory(): MemoryContext
     {
         return $this->context;
     }
@@ -90,7 +90,7 @@ class AssistantAgent implements Agent, HasMemory, HasMiddleware, HasTools
 **3. Prompt it.**
 
 ```php
-$context = new MemoryContext(tenant: $workspace, user: $request->user());
+$context = new MemoryContext(owner: $workspace, user: $request->user());
 
 (new AssistantAgent($context))->prompt('From now on, send me the weekly report as PDF.');
 ```
@@ -112,8 +112,9 @@ Write   Remember tool ─┐
                                          ─> close memories? ─> add, replace or skip
                                          ─> archive the weakest when the context is full
 
-Read    every prompt  ─> WithMemory loads the 30 strongest live memories
-        on demand     ─> RecallMemory: keyword search + meaning search, fused, × strength
+Read    every prompt  ─> WithMemory loads the user's preferences, the memories that match
+                          the last 3 user messages, then the strongest ones, up to 30
+        on demand     ─> RecallMemory: keyword search + meaning search, fused, ties by strength
 
 Forget  time          ─> strength decays per kind
         contradiction ─> the old row gets superseded_by
@@ -130,14 +131,26 @@ Every read and write happens in a `MemoryContext`:
 use Eznix86\AI\Memory\MemoryContext;
 
 $context = new MemoryContext(
-    tenant: $workspace,              // any Eloquent model: team, workspace, account
-    user: $request->user(),          // optional: also sees this user's personal memories
-    conversationId: $conversationId, // optional: recorded as the source of new memories
-    subjects: ['customer:42'],       // optional: memories about these are always loaded
+    owner: $team,                       // any Eloquent model: team, workspace, account, or a user
+    user: $request->user(),             // optional: also sees this user's personal memories
+    conversation: $conversationId,      // optional: recorded as the source of new memories
 );
 ```
 
-Each memory has a **kind**. Preferences belong to one user. The other kinds are shared in the tenant.
+With the SDK's `RemembersConversations`, an agent can build it from the conversation:
+
+```php
+public function memory(): MemoryContext
+{
+    return new MemoryContext(owner: $this->team, user: $this->conversationParticipant(), conversation: $this->currentConversation());
+}
+```
+
+Each memory has a **kind**. Preferences belong to one user. The other kinds are shared by everyone in the owner. For a personal assistant, make the user the owner too, and every memory stays private:
+
+```php
+new MemoryContext(owner: $user, user: $user);
+```
 
 | Kind | Example |
 |---|---|
@@ -156,8 +169,8 @@ A **subject** is a stable id written as `type:id`, such as `customer:42` or `pro
 |---|---|
 | `Remember` | Stores one fact: a kind, at most 300 characters, an optional subject and an importance from 0 to 1. It tells the agent when a fact is rejected, already known or replaces another |
 | `Forget` | Archives a memory by id. A person can restore it |
-| `RecallMemory` | Searches the memories that were not loaded. It ranks them by keyword (PostgreSQL full text) and by meaning (pgvector), fuses both rankings and weighs them by strength. Archived memories are searched only when the agent asks |
-| `WithMemory` | Adds the strongest memories to the instructions once per prompt, and keeps them after tool calls. The user's preferences and the memories about the context subjects are always included |
+| `RecallMemory` | Searches the memories that were not loaded. It ranks them by keyword (PostgreSQL full text, any word of the query) and by meaning (pgvector) and fuses both rankings. Strength only decides between equal matches. Archived memories are searched only when the agent asks |
+| `WithMemory` | Adds memories to the instructions once per prompt, and keeps them after tool calls: first the user's preferences, then the 8 memories that best match the last 3 user messages, then the strongest ones, up to 30. So an old note about the customer the user names is loaded, even when it is weak |
 | `MemorySkill` | Guidance the agent loads with the SDK's `LoadSkill` tool: when a fact is worth keeping, which kind to choose, how to correct a fact |
 
 To add the skill, implement `HasSkills`:
@@ -234,7 +247,7 @@ strength = min(1, importance × 0.5^(days unused / half-life) × (1 + 0.1 × min
 
 Each time a memory is loaded or recalled, it gets stronger again.
 
-`memory:consolidate` queues one job per tenant. The job merges each subject that has 6 or more live memories into one note written by a model, and the originals get `superseded_by`. Then it archives the memories whose strength fell below 0.05, except the ones a person wrote or confirmed. If the merged note is rejected, the originals stay and a warning is logged. Pass `--sync` to run it at once.
+`memory:consolidate` queues one job per owner. The job merges each subject that has 6 or more live memories into one note written by a model, and the originals get `superseded_by`. Then it archives the memories whose strength fell below 0.05, except the ones a person wrote or confirmed. If the merged note is rejected, the originals stay and a warning is logged. Pass `--sync` to run it at once.
 
 ## Managing memories
 
@@ -254,9 +267,9 @@ Memories::export($user);
 Memories::purge($workspace, 'customer:42');
 ```
 
-`add` and `edit` mark the memory as written or confirmed by that person, and go through the same checks as the agent. `export` returns all of a user's memories, archived and superseded ones included. `purge` removes every memory about a subject in the tenant, for privacy requests.
+`add` and `edit` mark the memory as written or confirmed by that person, and go through the same checks as the agent. `export` returns all of a user's memories, archived and superseded ones included. `purge` removes every memory about a subject in the owner, for privacy requests.
 
-`MemoryPolicy` lets users update and delete their own memories. Shared memories need a tenant administrator. Extend the policy to say who that is:
+`MemoryPolicy` lets users update and delete their own memories. Shared memories need an owner administrator. Extend the policy to say who that is:
 
 ```php
 use Eznix86\AI\Memory\Models\AgentMemory;
@@ -266,9 +279,9 @@ use Illuminate\Support\Facades\Gate;
 
 class AgentMemoryPolicy extends MemoryPolicy
 {
-    protected function administers(Model $user, Model $tenant): bool
+    protected function administers(Model $user, Model $owner): bool
     {
-        return $user->isAdminOf($tenant);
+        return $user->isAdminOf($owner);
     }
 }
 
@@ -335,6 +348,7 @@ Every option is documented in `config/memory.php`. The ones you are most likely 
 | `AI_MEMORY_EXTRACTION` | `true` | Extract facts after each turn |
 | `AI_MEMORY_QUEUE` | default queue | Queue of the extraction and consolidation jobs |
 | `AI_MEMORY_LOADED_LIMIT` | `30` | Memories added to the instructions |
+| `AI_MEMORY_RELEVANT_LIMIT` | `8` | Of those, memories chosen because they match the last user messages |
 | `AI_MEMORY_MAX_LIVE` | `500` | Live memories per context before the weakest are archived |
 
 ## Testing your application

@@ -27,7 +27,7 @@ class ConsolidateMemories implements ShouldQueue
      * Create a new job instance.
      */
     public function __construct(
-        public Model $tenant,
+        public Model $owner,
     ) {
         $this->onQueue(config('memory.queue'));
     }
@@ -38,7 +38,7 @@ class ConsolidateMemories implements ShouldQueue
     public function handle(MemoryWriter $writer): void
     {
         AgentMemory::query()
-            ->forTenant($this->tenant)
+            ->forOwner($this->owner)
             ->live()
             ->whereNotNull('subject')
             ->select(['subject', 'user_type', 'user_id'])
@@ -48,7 +48,7 @@ class ConsolidateMemories implements ShouldQueue
             ->each(fn (AgentMemory $group) => $this->merge($writer, $this->memoriesLike($group)));
 
         AgentMemory::query()
-            ->forTenant($this->tenant)
+            ->forOwner($this->owner)
             ->live()
             ->whereNull('creator_id')
             ->weakerThan(config('memory.archive_below'))
@@ -64,7 +64,7 @@ class ConsolidateMemories implements ShouldQueue
     protected function memoriesLike(AgentMemory $group): Collection
     {
         return AgentMemory::query()
-            ->forTenant($this->tenant)
+            ->forOwner($this->owner)
             ->live()
             ->where('subject', $group->subject)
             ->where('user_type', $group->user_type)
@@ -99,8 +99,8 @@ class ConsolidateMemories implements ShouldQueue
             ]);
         } catch (RejectedMemory $exception) {
             Log::warning('Memory consolidation kept the originals because the merged note was rejected.', [
-                'tenant_type' => $first->tenant_type,
-                'tenant_id' => $first->tenant_id,
+                'owner_type' => $first->owner_type,
+                'owner_id' => $first->owner_id,
                 'subject' => $first->subject,
                 'reason' => $exception->getMessage(),
                 'note' => $answer['content'] ?? null,
@@ -111,8 +111,8 @@ class ConsolidateMemories implements ShouldQueue
 
         DB::transaction(function () use ($memories, $first, $fact): void {
             $merged = AgentMemory::create([
-                'tenant_type' => $first->tenant_type,
-                'tenant_id' => $first->tenant_id,
+                'owner_type' => $first->owner_type,
+                'owner_id' => $first->owner_id,
                 'user_type' => $first->user_type,
                 'user_id' => $first->user_id,
                 'kind' => $fact['kind'],

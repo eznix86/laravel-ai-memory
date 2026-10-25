@@ -127,7 +127,7 @@ test('a policy that grants administration lets the admin manage shared memories'
 class AdminMemoryPolicy extends MemoryPolicy
 {
     #[\Override]
-    protected function administers(Model $user, Model $tenant): bool
+    protected function administers(Model $user, Model $owner): bool
     {
         return $user->name === 'Admin';
     }

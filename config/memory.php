@@ -63,13 +63,18 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may specify how many memories the WithMemory middleware adds
-    | to the agent instructions on every prompt, strongest first. The agent
-    | reaches the other memories with the RecallMemory tool. Every loaded
-    | memory costs tokens on every prompt. Set it to 0 to load nothing.
+    | to the agent instructions on every prompt. It loads the user's
+    | preferences first, then the memories most relevant to the last user
+    | messages, up to the relevant limit, then the strongest ones until the
+    | loaded limit. The agent finds the others with the RecallMemory tool.
+    | Every loaded memory costs tokens on every prompt. Set the loaded
+    | limit to 0 to load nothing.
     |
     */
 
     'loaded_limit' => (int) env('AI_MEMORY_LOADED_LIMIT', 30),
+
+    'relevant_limit' => (int) env('AI_MEMORY_RELEVANT_LIMIT', 8),
 
     /*
     |--------------------------------------------------------------------------

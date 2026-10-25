@@ -12,7 +12,7 @@ test('the extractor keeps what the user stated', function (array $case): void {
 
     ExtractMemories::dispatchSync($workspace, user(), null, $case['message'], $case['reply']);
 
-    expect(Str::lower((string) AgentMemory::forTenant($workspace)->pluck('content')->implode(' / ')))->toContain(...$case['keywords']);
+    expect(Str::lower((string) AgentMemory::forOwner($workspace)->pluck('content')->implode(' / ')))->toContain(...$case['keywords']);
 })->with(IntegrationTestCase::cases('memory', 'extraction_stored'));
 
 test('the extractor ignores what the user did not state', function (array $case): void {
@@ -20,5 +20,5 @@ test('the extractor ignores what the user did not state', function (array $case)
 
     ExtractMemories::dispatchSync($workspace, user(), null, $case['message'], $case['reply']);
 
-    expect(AgentMemory::forTenant($workspace)->pluck('content')->all())->toBe([]);
+    expect(AgentMemory::forOwner($workspace)->pluck('content')->all())->toBe([]);
 })->with(IntegrationTestCase::cases('memory', 'extraction_ignored'));

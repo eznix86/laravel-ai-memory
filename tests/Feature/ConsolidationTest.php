@@ -90,7 +90,7 @@ test('faded memories are archived, but never the ones a person wrote or confirme
         ->and($alive->fresh()->archived_at)->toBeNull();
 });
 
-test('consolidation stays inside the tenant', function (): void {
+test('consolidation stays inside the owner', function (): void {
     $acme = workspace('Acme');
     $globex = workspace('Globex');
     notes(new MemoryContext($acme), 6);
@@ -100,10 +100,10 @@ test('consolidation stays inside the tenant', function (): void {
 
     MemoryConsolidator::assertNeverPrompted();
     expect($faded->fresh()->archived_at)->not->toBeNull()
-        ->and(AgentMemory::forTenant($acme)->live()->count())->toBe(6);
+        ->and(AgentMemory::forOwner($acme)->live()->count())->toBe(6);
 });
 
-test('the command queues one consolidation per tenant', function (): void {
+test('the command queues one consolidation per owner', function (): void {
     Queue::fake();
     $acme = workspace('Acme');
     $globex = workspace('Globex');
@@ -114,6 +114,6 @@ test('the command queues one consolidation per tenant', function (): void {
     $this->artisan('memory:consolidate')->assertSuccessful();
 
     Queue::assertPushed(ConsolidateMemories::class, 2);
-    Queue::assertPushed(ConsolidateMemories::class, fn (ConsolidateMemories $job): bool => $job->tenant->is($acme));
-    Queue::assertPushed(ConsolidateMemories::class, fn (ConsolidateMemories $job): bool => $job->tenant->is($globex));
+    Queue::assertPushed(ConsolidateMemories::class, fn (ConsolidateMemories $job): bool => $job->owner->is($acme));
+    Queue::assertPushed(ConsolidateMemories::class, fn (ConsolidateMemories $job): bool => $job->owner->is($globex));
 });

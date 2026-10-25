@@ -25,9 +25,9 @@ class ExtractMemories implements ShouldQueue
      * Create a new job instance.
      */
     public function __construct(
-        public Model $tenant,
+        public Model $owner,
         public ?Model $user,
-        public ?string $conversationId,
+        public ?string $conversation,
         public string $message,
         public string $reply,
     ) {
@@ -39,7 +39,7 @@ class ExtractMemories implements ShouldQueue
      */
     public function handle(MemoryWriter $writer, Grounding $grounding): void
     {
-        $context = new MemoryContext($this->tenant, $this->user, $this->conversationId);
+        $context = new MemoryContext($this->owner, $this->user, $this->conversation);
 
         $answer = (new MemoryExtractor)->ask(Prompt::render('prompts.memory.agents.extractor-prompt', [
             'message' => $this->message,

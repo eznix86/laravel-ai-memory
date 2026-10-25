@@ -31,7 +31,7 @@ use Laravel\Ai\Responses\Data\ChoiceAnswer;
  * @method static AgentMemory edit(AgentMemory $memory, string $content, Model $editor)
  * @method static void delete(AgentMemory $memory)
  * @method static array<int, array<string, mixed>> export(Model $user)
- * @method static int purge(Model $tenant, string $subject)
+ * @method static int purge(Model $owner, string $subject)
  *
  * @see MemoryManager
  */

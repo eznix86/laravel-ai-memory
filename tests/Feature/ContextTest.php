@@ -25,7 +25,7 @@ test('a memory from one workspace never appears in another workspace', function 
         ->and((new RecallMemory($acme))->handle(new Request(['query' => 'books'])))->toContain('Acme closes its books');
 });
 
-test('a tenant with the same key but another type is a different tenant', function (): void {
+test('a owner with the same key but another type is a different owner', function (): void {
     $workspace = workspace();
     $user = user();
 
@@ -51,7 +51,7 @@ test('a user preference is loaded for that user and not for a colleague', functi
         ->and(AssistantAgent::$instructions[1])->not->toContain('Ada prefers');
 });
 
-test('a context without a user sees only tenant-wide memories', function (): void {
+test('a context without a user sees only owner-wide memories', function (): void {
     $workspace = workspace();
 
     memory(new MemoryContext($workspace, user()), 'Personal.', MemoryKind::Preference);

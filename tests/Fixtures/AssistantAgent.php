@@ -13,14 +13,16 @@ use Eznix86\AI\Memory\Tools\Forget;
 use Eznix86\AI\Memory\Tools\RecallMemory;
 use Eznix86\AI\Memory\Tools\Remember;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasMiddleware;
 use Laravel\Ai\Contracts\HasSkills;
 use Laravel\Ai\Contracts\HasTools;
+use Laravel\Ai\Messages\Message;
 use Laravel\Ai\PendingStep;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-class AssistantAgent implements Agent, HasMemory, HasMiddleware, HasSkills, HasTools
+class AssistantAgent implements Agent, Conversational, HasMemory, HasMiddleware, HasSkills, HasTools
 {
     use Promptable;
 
@@ -28,6 +30,11 @@ class AssistantAgent implements Agent, HasMemory, HasMiddleware, HasSkills, HasT
      * @var list<string|null>
      */
     public static array $instructions = [];
+
+    /**
+     * @var list<Message>
+     */
+    public static array $history = [];
 
     public function __construct(
         protected MemoryContext $context,
@@ -38,7 +45,12 @@ class AssistantAgent implements Agent, HasMemory, HasMiddleware, HasSkills, HasT
         return 'You are a helpful assistant.';
     }
 
-    public function memoryContext(): MemoryContext
+    public function messages(): iterable
+    {
+        return static::$history;
+    }
+
+    public function memory(): MemoryContext
     {
         return $this->context;
     }

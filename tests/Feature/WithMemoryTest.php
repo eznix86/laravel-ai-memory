@@ -7,6 +7,8 @@ use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Laravel\Ai\Messages\AssistantMessage;
+use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Responses\Data\ToolCall;
 use Tests\Fixtures\AssistantAgent;
 
@@ -49,23 +51,41 @@ test('instructions contain at most 30 memories, strongest first', function (): v
     expect(loadedIds(AssistantAgent::$instructions[0]))->toBe($memories->reverse()->take(30)->pluck('id')->all());
 });
 
-test('the user preferences and the memories about context subjects are loaded even when weak', function (): void {
-    $workspace = workspace();
-    $user = user();
-    $context = new MemoryContext($workspace, $user, subjects: ['customer:42']);
-
+test('the user preferences and the memories relevant to the question are loaded even when weak', function (): void {
+    $context = new MemoryContext(workspace(), user());
     collect(range(1, 30))->each(fn (int $i): AgentMemory => memory($context, "Strong lesson {$i}.", attributes: ['importance' => 1]));
     $preference = memory($context, 'The user prefers French.', MemoryKind::Preference, ['importance' => 0.01]);
     $note = memory($context, 'Customer 42 pays late.', MemoryKind::CustomerNote, ['importance' => 0.01, 'subject' => 'customer:42']);
-    $other = memory($context, 'Customer 7 pays early.', MemoryKind::CustomerNote, ['importance' => 0.01, 'subject' => 'customer:7']);
 
-    AssistantAgent::fake(['Hello']);
-    (new AssistantAgent($context))->prompt('Hi');
+    AssistantAgent::fake(['Done.']);
+    (new AssistantAgent($context))->prompt('Prepare the invoice for customer 42.');
 
     expect(loadedIds(AssistantAgent::$instructions[0]))
         ->toHaveCount(30)
-        ->toContain($preference->id, $note->id)
-        ->not->toContain($other->id);
+        ->toContain($preference->id, $note->id);
+});
+
+test('a follow-up loads the memories relevant to the earlier user messages', function (): void {
+    $context = new MemoryContext(workspace(), user());
+    collect(range(1, 30))->each(fn (int $i): AgentMemory => memory($context, "Strong lesson {$i}.", attributes: ['importance' => 1]));
+    $note = memory($context, 'Customer 42 pays late.', MemoryKind::CustomerNote, ['importance' => 0.01, 'subject' => 'customer:42']);
+    AssistantAgent::$history = [new UserMessage('Customer 42 called this morning.'), new AssistantMessage('Noted.')];
+
+    AssistantAgent::fake(['Done.']);
+    (new AssistantAgent($context))->prompt('Prepare their next invoice.');
+
+    expect(loadedIds(AssistantAgent::$instructions[0]))->toContain($note->id);
+});
+
+test('without the earlier messages, the weak memory is not loaded', function (): void {
+    $context = new MemoryContext(workspace(), user());
+    collect(range(1, 30))->each(fn (int $i): AgentMemory => memory($context, "Strong lesson {$i}.", attributes: ['importance' => 1]));
+    $note = memory($context, 'Customer 42 pays late.', MemoryKind::CustomerNote, ['importance' => 0.01, 'subject' => 'customer:42']);
+
+    AssistantAgent::fake(['Done.']);
+    (new AssistantAgent($context))->prompt('Prepare their next invoice.');
+
+    expect(loadedIds(AssistantAgent::$instructions[0]))->not->toContain($note->id);
 });
 
 test('loading increments recall count and sets last used once per prompt', function (): void {

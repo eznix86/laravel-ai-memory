@@ -70,7 +70,7 @@ class MemoryWriter
             'source' => $fact['source'],
         ]);
 
-        $memory->tenant()->associate($context->tenant);
+        $memory->owner()->associate($context->owner);
 
         if ($personal) {
             $memory->user()->associate($context->user);

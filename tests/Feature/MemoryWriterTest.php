@@ -20,13 +20,13 @@ function write(array $fact, ?MemoryContext $context = null): AgentMemory
     ])->memory;
 }
 
-test('a fact is stored in the tenant with its source and an embedding', function (): void {
+test('a fact is stored in the owner with its source and an embedding', function (): void {
     $workspace = workspace();
 
     $memory = write(['content' => 'Invoices are sent on the first Monday.', 'kind' => MemoryKind::Process, 'subject' => 'team:billing'], new MemoryContext($workspace));
 
     expect($memory->fresh())
-        ->tenant->is($workspace)->toBeTrue()
+        ->owner->is($workspace)->toBeTrue()
         ->user_id->toBeNull()
         ->kind->toBe(MemoryKind::Process)
         ->source->toBe('test')
@@ -36,7 +36,7 @@ test('a fact is stored in the tenant with its source and an embedding', function
     Embeddings::assertGenerated(fn (EmbeddingsPrompt $prompt): bool => $prompt->inputs === ['team:billing · process: Invoices are sent on the first Monday.']);
 });
 
-test('a preference belongs to the user and other kinds to the whole tenant', function (): void {
+test('a preference belongs to the user and other kinds to the whole owner', function (): void {
     $user = user();
     $context = new MemoryContext(workspace(), $user);
 

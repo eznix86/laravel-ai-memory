@@ -19,9 +19,9 @@ test('a prompt to an agent with memory queues the extraction of the turn', funct
     AssistantAgent::fake(['Noted, Tuesdays it is.']);
     (new AssistantAgent(new MemoryContext($workspace, $user, 'conv-1')))->prompt('We deploy on Tuesdays.');
 
-    Queue::assertPushedOn('memory', ExtractMemories::class, fn (ExtractMemories $job): bool => $job->tenant->is($workspace)
+    Queue::assertPushedOn('memory', ExtractMemories::class, fn (ExtractMemories $job): bool => $job->owner->is($workspace)
         && $job->user->is($user)
-        && $job->conversationId === 'conv-1'
+        && $job->conversation === 'conv-1'
         && $job->message === 'We deploy on Tuesdays.'
         && $job->reply === 'Noted, Tuesdays it is.');
 });

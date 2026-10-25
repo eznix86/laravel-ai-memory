@@ -21,12 +21,12 @@ class QueueMemoryExtraction
             return;
         }
 
-        $context = $agent->memoryContext();
+        $context = $agent->memory();
 
         ExtractMemories::dispatch(
-            $context->tenant,
+            $context->owner,
             $context->user,
-            $event->response->conversationId ?? $context->conversationId,
+            $event->response->conversationId ?? $context->conversation,
             $event->prompt->prompt,
             $event->response->text,
         );

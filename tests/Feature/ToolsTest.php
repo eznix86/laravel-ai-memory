@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Lang;
 use Laravel\Ai\Tools\Request;
 
 test('Remember stores the fact with the conversation as source', function (): void {
-    $context = new MemoryContext(workspace(), user(), conversationId: 'conv-1');
+    $context = new MemoryContext(workspace(), user(), conversation: 'conv-1');
 
     $result = (new Remember($context))->handle(new Request(['kind' => 'lesson', 'content' => 'Shipping to Geneva takes two days.', 'subject' => 'carrier:dhl', 'importance' => 0.8]));
 

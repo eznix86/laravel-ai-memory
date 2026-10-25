@@ -11,5 +11,5 @@ interface HasMemory
     /**
      * Get the memory context the agent reads and writes.
      */
-    public function memoryContext(): MemoryContext;
+    public function memory(): MemoryContext;
 }

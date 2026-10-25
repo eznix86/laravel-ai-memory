@@ -14,26 +14,26 @@ class ConsolidateCommand extends Command
 {
     protected $signature = 'memory:consolidate {--sync : Run the consolidation now instead of queueing it}';
 
-    protected $description = 'Merge memories that share a subject and archive the ones that faded, for every tenant';
+    protected $description = 'Merge memories that share a subject and archive the ones that faded, for every owner';
 
     public function handle(): void
     {
         AgentMemory::query()
-            ->select(['tenant_type', 'tenant_id'])
+            ->select(['owner_type', 'owner_id'])
             ->distinct()
             ->get()
             ->each(function (AgentMemory $row): void {
-                $class = Relation::getMorphedModel($row->tenant_type) ?? $row->tenant_type;
+                $class = Relation::getMorphedModel($row->owner_type) ?? $row->owner_type;
 
-                $tenant = class_exists($class) ? $class::find($row->tenant_id) : null;
+                $owner = class_exists($class) ? $class::find($row->owner_id) : null;
 
-                if (! $tenant instanceof Model) {
+                if (! $owner instanceof Model) {
                     return;
                 }
 
-                $this->option('sync') ? ConsolidateMemories::dispatchSync($tenant) : ConsolidateMemories::dispatch($tenant);
+                $this->option('sync') ? ConsolidateMemories::dispatchSync($owner) : ConsolidateMemories::dispatch($owner);
 
-                $this->line("Consolidating {$row->tenant_type} #{$row->tenant_id}.");
+                $this->line("Consolidating {$row->owner_type} #{$row->owner_id}.");
             });
     }
 }

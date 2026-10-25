@@ -29,6 +29,7 @@ abstract class TestCase extends BaseTestCase
         'dimensions' => null,
         'fulltext_language' => 'english',
         'loaded_limit' => 30,
+        'relevant_limit' => 8,
         'recall_limit' => 8,
         'recall_min_similarity' => 0.3,
         'provider' => null,
@@ -107,6 +108,7 @@ abstract class TestCase extends BaseTestCase
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
 
         AssistantAgent::$instructions = [];
+        AssistantAgent::$history = [];
     }
 
     protected function getPackageProviders($app): array
