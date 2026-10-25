@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use Dotenv\Dotenv;
 use Eznix86\AI\Memory\Enums\MemoryKind;
+use Eznix86\AI\Memory\Facades\Memories;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Eznix86\AI\Memory\Services\MemoryWriter;
 use Tests\Fixtures\User;
 use Tests\Fixtures\Workspace;
+use Tests\Integration\IntegrationTestCase;
 use Tests\TestCase;
 
 /*
@@ -21,9 +24,15 @@ use Tests\TestCase;
 |
 */
 
+Dotenv::createUnsafeImmutable(dirname(__DIR__))->safeLoad();
+
 pest()->extend(TestCase::class)
- // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->beforeEach(fn () => Memories::fake())
     ->in('Feature');
+
+pest()->extend(IntegrationTestCase::class)
+    ->group('integration')
+    ->in('Integration');
 
 /*
 |--------------------------------------------------------------------------

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use Eznix86\AI\Memory\Facades\Memories;
 use Eznix86\AI\Memory\MemoryServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Ai\AiServiceProvider;
@@ -77,8 +76,6 @@ abstract class TestCase extends BaseTestCase
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
-
-        Memories::fake();
 
         AssistantAgent::$instructions = [];
     }
