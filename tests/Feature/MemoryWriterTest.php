@@ -13,7 +13,7 @@ use Laravel\Ai\Prompts\EmbeddingsPrompt;
 
 function write(array $fact, ?MemoryContext $context = null): AgentMemory
 {
-    return app(MemoryWriter::class)->write($context ?? new MemoryContext(workspace(), user()), [
+    return app(MemoryWriter::class)->write($context ?? new MemoryContext(user: user(), owner: workspace()), [
         'kind' => MemoryKind::Lesson,
         'source' => 'test',
         ...$fact,
@@ -23,7 +23,7 @@ function write(array $fact, ?MemoryContext $context = null): AgentMemory
 test('a fact is stored in the owner with its source and an embedding', function (): void {
     $workspace = workspace();
 
-    $memory = write(['content' => 'Invoices are sent on the first Monday.', 'kind' => MemoryKind::Process, 'subject' => 'team:billing'], new MemoryContext($workspace));
+    $memory = write(['content' => 'Invoices are sent on the first Monday.', 'kind' => MemoryKind::Process, 'subject' => 'team:billing'], new MemoryContext(owner: $workspace));
 
     expect($memory->fresh())
         ->owner->is($workspace)->toBeTrue()
@@ -38,14 +38,14 @@ test('a fact is stored in the owner with its source and an embedding', function 
 
 test('a preference belongs to the user and other kinds to the whole owner', function (): void {
     $user = user();
-    $context = new MemoryContext(workspace(), $user);
+    $context = new MemoryContext(user: $user, owner: workspace());
 
     expect(write(['kind' => MemoryKind::Preference, 'content' => 'The user prefers short answers.'], $context)->user->is($user))->toBeTrue()
         ->and(write(['kind' => MemoryKind::Process, 'content' => 'Refunds need a manager.'], $context)->user_id)->toBeNull();
 });
 
 test('a personal fact without a user in the context is rejected', function (): void {
-    write(['kind' => MemoryKind::Preference, 'content' => 'The user prefers short answers.'], new MemoryContext(workspace()));
+    write(['kind' => MemoryKind::Preference, 'content' => 'The user prefers short answers.'], new MemoryContext(owner: workspace()));
 })->throws(RejectedMemory::class, 'a personal memory needs a user');
 
 test('changing the content generates a new embedding', function (): void {

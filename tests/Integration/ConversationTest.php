@@ -11,7 +11,7 @@ use Tests\Integration\IntegrationTestCase;
 
 function converse(array $messages): string
 {
-    $context = new MemoryContext(workspace(), user());
+    $context = new MemoryContext(user: user(), owner: workspace());
 
     collect($messages)->each(fn (string $message): AgentResponse => (new AssistantAgent($context))->prompt($message));
 

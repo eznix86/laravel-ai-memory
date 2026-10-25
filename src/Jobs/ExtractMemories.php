@@ -22,6 +22,11 @@ class ExtractMemories implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
+     * Drop the job when its owner or user was deleted, since there is nothing left to do.
+     */
+    public bool $deleteWhenMissingModels = true;
+
+    /**
      * Create a new job instance.
      */
     public function __construct(
@@ -39,7 +44,7 @@ class ExtractMemories implements ShouldQueue
      */
     public function handle(MemoryWriter $writer, Grounding $grounding): void
     {
-        $context = new MemoryContext($this->owner, $this->user, $this->conversation);
+        $context = new MemoryContext(user: $this->user, owner: $this->owner, conversation: $this->conversation);
 
         $answer = (new MemoryExtractor)->ask(Prompt::render('prompts.memory.agents.extractor-prompt', [
             'message' => $this->message,

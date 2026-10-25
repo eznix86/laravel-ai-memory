@@ -9,7 +9,7 @@ use Tests\Fixtures\AssistantAgent;
 test('the agent can load the memory skill instructions', function (): void {
     AssistantAgent::fake([new ToolCall('call-1', 'LoadSkill', ['name' => 'memory']), 'Done.']);
 
-    $response = (new AssistantAgent(new MemoryContext(workspace())))->prompt('Remember that we deploy on Thursdays now.');
+    $response = (new AssistantAgent(new MemoryContext(owner: workspace())))->prompt('Remember that we deploy on Thursdays now.');
 
     expect((string) $response->steps[0]->toolResults[0]->result)
         ->toContain('# Memory')

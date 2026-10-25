@@ -17,7 +17,7 @@ test('a prompt to an agent with memory queues the extraction of the turn', funct
     $user = user();
 
     AssistantAgent::fake(['Noted, Tuesdays it is.']);
-    (new AssistantAgent(new MemoryContext($workspace, $user, 'conv-1')))->prompt('We deploy on Tuesdays.');
+    (new AssistantAgent(new MemoryContext(user: $user, owner: $workspace, conversation: 'conv-1')))->prompt('We deploy on Tuesdays.');
 
     Queue::assertPushedOn('memory', ExtractMemories::class, fn (ExtractMemories $job): bool => $job->owner->is($workspace)
         && $job->user->is($user)
@@ -30,7 +30,7 @@ test('a streamed prompt queues the extraction too', function (): void {
     Queue::fake();
 
     AssistantAgent::fake(['Noted.']);
-    (new AssistantAgent(new MemoryContext(workspace())))->stream('We deploy on Tuesdays.')->each(fn (): null => null);
+    (new AssistantAgent(new MemoryContext(owner: workspace())))->stream('We deploy on Tuesdays.')->each(fn (): null => null);
 
     Queue::assertPushed(ExtractMemories::class);
 });
@@ -40,7 +40,7 @@ test('extraction is skipped when disabled', function (): void {
     config(['memory.extraction' => false]);
 
     AssistantAgent::fake(['Noted.']);
-    (new AssistantAgent(new MemoryContext(workspace())))->prompt('We deploy on Tuesdays.');
+    (new AssistantAgent(new MemoryContext(owner: workspace())))->prompt('We deploy on Tuesdays.');
 
     Queue::assertNotPushed(ExtractMemories::class);
 });

@@ -28,7 +28,7 @@ function crowdedMemory(MemoryContext $context, array $target): AgentMemory
 }
 
 test('a weak memory that answers the question is loaded among many strong ones', function (array $case): void {
-    $context = new MemoryContext(workspace(), user());
+    $context = new MemoryContext(user: user(), owner: workspace());
     $target = crowdedMemory($context, $case['target']);
     AssistantAgent::fake(['Done.']);
 
@@ -38,7 +38,7 @@ test('a weak memory that answers the question is loaded among many strong ones',
 })->with(IntegrationTestCase::cases('memory', 'loading'));
 
 test('a weak memory named only earlier in the conversation is loaded for a follow-up', function (array $case): void {
-    $context = new MemoryContext(workspace(), user());
+    $context = new MemoryContext(user: user(), owner: workspace());
     $target = crowdedMemory($context, $case['target']);
     AssistantAgent::$history = collect($case['conversation'])->slice(0, -1)->map(fn (string $text): UserMessage => new UserMessage($text))->values()->all();
     AssistantAgent::fake(['Done.']);

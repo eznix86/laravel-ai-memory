@@ -37,7 +37,7 @@ composer require eznix86/laravel-ai-memory
 php artisan migrate
 ```
 
-**2. Give your agent a memory.** Build a `MemoryContext` for the current owner and user, and hand it to the tools and the middleware:
+**2. Give your agent a memory.** Build a `MemoryContext` for the current user, and hand it to the tools and the middleware:
 
 ```php
 use Eznix86\AI\Memory\Contracts\HasMemory;
@@ -90,7 +90,7 @@ class AssistantAgent implements Agent, HasMemory, HasMiddleware, HasTools
 **3. Prompt it.**
 
 ```php
-$context = new MemoryContext(owner: $workspace, user: $request->user());
+$context = new MemoryContext(user: $request->user());
 
 (new AssistantAgent($context))->prompt('From now on, send me the weekly report as PDF.');
 ```
@@ -131,26 +131,30 @@ Every read and write happens in a `MemoryContext`:
 use Eznix86\AI\Memory\MemoryContext;
 
 $context = new MemoryContext(
-    owner: $team,                       // any Eloquent model: team, workspace, account, or a user
-    user: $request->user(),             // optional: also sees this user's personal memories
+    user: $request->user(),             // the user the agent talks to
+    owner: $team,                       // optional: any Eloquent model whose members share the memories
     conversation: $conversationId,      // optional: recorded as the source of new memories
 );
 ```
+
+Without an owner, the user owns the memories, and they stay private to that user. That fits a single-user system:
+
+```php
+new MemoryContext(user: $user);
+```
+
+With an owner, such as a team, the user's preferences stay private, and the other memories are shared by everyone in the team. A context needs a user, an owner, or both.
 
 With the SDK's `RemembersConversations`, an agent can build it from the conversation:
 
 ```php
 public function memory(): MemoryContext
 {
-    return new MemoryContext(owner: $this->team, user: $this->conversationParticipant(), conversation: $this->currentConversation());
+    return new MemoryContext(user: $this->conversationParticipant(), owner: $this->team, conversation: $this->currentConversation());
 }
 ```
 
-Each memory has a **kind**. Preferences belong to one user. The other kinds are shared by everyone in the owner. For a personal assistant, make the user the owner too, and every memory stays private:
-
-```php
-new MemoryContext(owner: $user, user: $user);
-```
+Each memory has a **kind**. Preferences belong to one user. The other kinds are shared by everyone in the owner.
 
 | Kind | Example |
 |---|---|
@@ -248,6 +252,15 @@ strength = min(1, importance × 0.5^(days unused / half-life) × (1 + 0.1 × min
 Each time a memory is loaded or recalled, it gets stronger again.
 
 `memory:consolidate` queues one job per owner. The job merges each subject that has 6 or more live memories into one note written by a model, and the originals get `superseded_by`. Then it archives the memories whose strength fell below 0.05, except the ones a person wrote or confirmed. If the merged note is rejected, the originals stay and a warning is logged. Pass `--sync` to run it at once.
+
+The command also reports memories whose owner no longer exists. Pass `--prune` to delete them. Better, delete them with their owner, for example in your `Team` model:
+
+```php
+protected static function booted(): void
+{
+    static::deleting(fn (Team $team) => AgentMemory::forOwner($team)->delete());
+}
+```
 
 ## Managing memories
 

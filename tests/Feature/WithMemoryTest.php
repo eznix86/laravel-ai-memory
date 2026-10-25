@@ -18,7 +18,7 @@ function loadedIds(string $instructions): array
 }
 
 test('memories are rendered under the heading as id, kind and content', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     $memory = memory($context, 'Quotes are valid for "30 days".', MemoryKind::Process);
 
     AssistantAgent::fake(['Hello']);
@@ -35,13 +35,13 @@ test('memories are rendered under the heading as id, kind and content', function
 
 test('instructions are unchanged when nothing is remembered', function (): void {
     AssistantAgent::fake(['Hello']);
-    (new AssistantAgent(new MemoryContext(workspace())))->prompt('Hi');
+    (new AssistantAgent(new MemoryContext(owner: workspace())))->prompt('Hi');
 
     expect(AssistantAgent::$instructions[0])->toBe('You are a helpful assistant.');
 });
 
 test('instructions contain at most 30 memories, strongest first', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
 
     $memories = collect(range(1, 35))->map(fn (int $i): AgentMemory => memory($context, "Lesson {$i}.", attributes: ['importance' => $i / 100]));
 
@@ -52,7 +52,7 @@ test('instructions contain at most 30 memories, strongest first', function (): v
 });
 
 test('the user preferences and the memories relevant to the question are loaded even when weak', function (): void {
-    $context = new MemoryContext(workspace(), user());
+    $context = new MemoryContext(user: user(), owner: workspace());
     collect(range(1, 30))->each(fn (int $i): AgentMemory => memory($context, "Strong lesson {$i}.", attributes: ['importance' => 1]));
     $preference = memory($context, 'The user prefers French.', MemoryKind::Preference, ['importance' => 0.01]);
     $note = memory($context, 'Customer 42 pays late.', MemoryKind::CustomerNote, ['importance' => 0.01, 'subject' => 'customer:42']);
@@ -66,7 +66,7 @@ test('the user preferences and the memories relevant to the question are loaded 
 });
 
 test('a follow-up loads the memories relevant to the earlier user messages', function (): void {
-    $context = new MemoryContext(workspace(), user());
+    $context = new MemoryContext(user: user(), owner: workspace());
     collect(range(1, 30))->each(fn (int $i): AgentMemory => memory($context, "Strong lesson {$i}.", attributes: ['importance' => 1]));
     $note = memory($context, 'Customer 42 pays late.', MemoryKind::CustomerNote, ['importance' => 0.01, 'subject' => 'customer:42']);
     AssistantAgent::$history = [new UserMessage('Customer 42 called this morning.'), new AssistantMessage('Noted.')];
@@ -78,7 +78,7 @@ test('a follow-up loads the memories relevant to the earlier user messages', fun
 });
 
 test('without the earlier messages, the weak memory is not loaded', function (): void {
-    $context = new MemoryContext(workspace(), user());
+    $context = new MemoryContext(user: user(), owner: workspace());
     collect(range(1, 30))->each(fn (int $i): AgentMemory => memory($context, "Strong lesson {$i}.", attributes: ['importance' => 1]));
     $note = memory($context, 'Customer 42 pays late.', MemoryKind::CustomerNote, ['importance' => 0.01, 'subject' => 'customer:42']);
 
@@ -90,7 +90,7 @@ test('without the earlier messages, the weak memory is not loaded', function ():
 
 test('loading increments recall count and sets last used once per prompt', function (): void {
     $this->freezeSecond();
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     $memory = memory($context, 'The user lives in Mauritius.');
 
     AssistantAgent::fake([new ToolCall('call-1', 'RecallMemory', ['query' => 'Where does the user live?']), 'Mauritius.']);
@@ -102,7 +102,7 @@ test('loading increments recall count and sets last used once per prompt', funct
 });
 
 test('memories stay in the instructions after a tool call', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     memory($context, 'The user lives in Mauritius.');
 
     AssistantAgent::fake([new ToolCall('call-1', 'RecallMemory', ['query' => 'Where does the user live?']), 'Mauritius.']);
@@ -118,7 +118,7 @@ test('a template in the application views overrides the package template', funct
     File::put($path, 'Custom: {{ $memories->count() }} facts');
 
     try {
-        $context = new MemoryContext(workspace());
+        $context = new MemoryContext(owner: workspace());
         memory($context, 'The user lives in Mauritius.');
 
         AssistantAgent::fake(['Hello']);

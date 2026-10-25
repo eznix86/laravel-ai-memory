@@ -24,6 +24,11 @@ class ConsolidateMemories implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
+     * Drop the job when its owner or user was deleted, since there is nothing left to do.
+     */
+    public bool $deleteWhenMissingModels = true;
+
+    /**
      * Create a new job instance.
      */
     public function __construct(

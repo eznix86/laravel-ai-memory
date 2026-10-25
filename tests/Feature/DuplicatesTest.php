@@ -22,7 +22,7 @@ function remember(MemoryContext $context, string $content, string $kind = 'proce
 }
 
 test('a fact unlike every stored memory is added without asking the decider', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     memory($context, 'Invoices are sent on Monday.', MemoryKind::Process);
 
     expect(remember($context, 'Refunds need a manager approval.'))->toStartWith('Remembered as #');
@@ -31,7 +31,7 @@ test('a fact unlike every stored memory is added without asking the decider', fu
 });
 
 test('a near duplicate is already known and creates no row', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     $known = memory($context, 'The team deploys only on Tuesdays.', MemoryKind::Process);
 
     MemoryDecider::fake([['decision' => 'noop', 'replace_id' => null]]);
@@ -43,7 +43,7 @@ test('a near duplicate is already known and creates no row', function (): void {
 });
 
 test('a contradicting fact supersedes the old memory, which no longer loads', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     $old = memory($context, 'The team deploys only on Tuesdays.', MemoryKind::Process);
 
     MemoryDecider::fake([['decision' => 'update', 'replace_id' => $old->id]]);
@@ -61,7 +61,7 @@ test('a contradicting fact supersedes the old memory, which no longer loads', fu
 });
 
 test('a replace id that is not among the candidates is ignored and the fact is added', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     $candidate = memory($context, 'The team deploys only on Tuesdays.', MemoryKind::Process);
     $unrelated = memory($context, 'Invoices are sent on Monday.', MemoryKind::Process);
 
@@ -76,7 +76,7 @@ test('a replace id that is not among the candidates is ignored and the fact is a
 
 test('candidates share the subject and the owner of the new fact', function (): void {
     $user = user();
-    $context = new MemoryContext(workspace(), $user);
+    $context = new MemoryContext(user: $user, owner: workspace());
 
     memory($context, 'Customer 42 pays late.', MemoryKind::CustomerNote, ['subject' => 'customer:7']);
     memory($context, 'The user prefers Tuesdays for calls.', MemoryKind::Process);
@@ -90,7 +90,7 @@ test('candidates share the subject and the owner of the new fact', function (): 
 
 test('the classification decider replaces the memory it picks', function (): void {
     config(['memory.decider' => 'classification']);
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     $old = memory($context, 'The team deploys only on Tuesdays.', MemoryKind::Process);
 
     Classification::fake([['decision' => new ChoiceAnswer("replace_{$old->id}", [])]]);
@@ -103,7 +103,7 @@ test('the classification decider replaces the memory it picks', function (): voi
 
 test('the classification decider can find a fact already known', function (): void {
     config(['memory.decider' => 'classification']);
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     $known = memory($context, 'The team deploys only on Tuesdays.', MemoryKind::Process);
 
     Classification::fake([['decision' => new ChoiceAnswer('noop', [])]]);
@@ -113,7 +113,7 @@ test('the classification decider can find a fact already known', function (): vo
 
 test('a full context archives its weakest memories before adding, but keeps the confirmed ones', function (): void {
     config(['memory.max_live' => 3]);
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     $confirmer = user();
 
     $confirmed = memory($context, 'Confirmed but weak.', attributes: ['importance' => 0.01, 'creator_type' => $confirmer->getMorphClass(), 'creator_id' => $confirmer->id]);
@@ -129,7 +129,7 @@ test('a full context archives its weakest memories before adding, but keeps the 
 });
 
 test('free-form subjects from the model are dropped, so the same fact still meets its duplicate', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     $tool = new Remember($context);
 
     $tool->handle(new Request(['kind' => 'process', 'content' => 'Our team deploys only on Tuesdays.', 'subject' => 'team deployment']));
@@ -144,7 +144,7 @@ test('free-form subjects from the model are dropped, so the same fact still meet
 });
 
 test('a subject written as type:id is kept', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
 
     (new Remember($context))->handle(new Request(['kind' => 'customer_note', 'content' => 'Customer 42 pays late.', 'subject' => 'customer:42']));
 
@@ -153,7 +153,7 @@ test('a subject written as type:id is kept', function (): void {
 
 test('the deciders use the configured timeout', function (): void {
     config(['memory.timeout' => 300]);
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
     memory($context, 'The team deploys only on Tuesdays.', MemoryKind::Process);
 
     remember($context, 'The team deploys only on Thursdays.');

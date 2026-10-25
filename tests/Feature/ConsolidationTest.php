@@ -20,7 +20,7 @@ function notes(MemoryContext $context, int $count, string $subject = 'customer:4
 
 test('six memories on one subject are merged into one, and the originals are superseded', function (): void {
     $workspace = workspace();
-    $notes = notes(new MemoryContext($workspace), 6);
+    $notes = notes(new MemoryContext(owner: $workspace), 6);
 
     MemoryConsolidator::fake([['content' => 'Customer 42 pays late and prefers email.', 'importance' => 0.7]]);
 
@@ -41,7 +41,7 @@ test('six memories on one subject are merged into one, and the originals are sup
 
 test('five memories on one subject are left alone', function (): void {
     $workspace = workspace();
-    notes(new MemoryContext($workspace), 5);
+    notes(new MemoryContext(owner: $workspace), 5);
 
     ConsolidateMemories::dispatchSync($workspace);
 
@@ -52,8 +52,8 @@ test('five memories on one subject are left alone', function (): void {
 test('personal and shared memories on the same subject are merged apart', function (): void {
     $workspace = workspace();
     $user = user();
-    notes(new MemoryContext($workspace), 3);
-    collect(range(1, 3))->each(fn (int $i): AgentMemory => memory(new MemoryContext($workspace, $user), "Personal note {$i}.", MemoryKind::Preference, ['subject' => 'customer:42']));
+    notes(new MemoryContext(owner: $workspace), 3);
+    collect(range(1, 3))->each(fn (int $i): AgentMemory => memory(new MemoryContext(user: $user, owner: $workspace), "Personal note {$i}.", MemoryKind::Preference, ['subject' => 'customer:42']));
 
     ConsolidateMemories::dispatchSync($workspace);
 
@@ -63,7 +63,7 @@ test('personal and shared memories on the same subject are merged apart', functi
 test('a merge the writer rejects changes nothing and logs why', function (): void {
     Log::spy();
     $workspace = workspace();
-    notes(new MemoryContext($workspace), 6);
+    notes(new MemoryContext(owner: $workspace), 6);
     MemoryConsolidator::fake([['content' => 'Pay with card 4111 1111 1111 1111.', 'importance' => 0.5]]);
 
     ConsolidateMemories::dispatchSync($workspace);
@@ -76,7 +76,7 @@ test('a merge the writer rejects changes nothing and logs why', function (): voi
 
 test('faded memories are archived, but never the ones a person wrote or confirmed', function (): void {
     $workspace = workspace();
-    $context = new MemoryContext($workspace);
+    $context = new MemoryContext(owner: $workspace);
     $person = user();
 
     $faded = memory($context, 'Old freeze.', MemoryKind::Context, ['importance' => 0.5, 'created_at' => now()->subDays(120)]);
@@ -93,8 +93,8 @@ test('faded memories are archived, but never the ones a person wrote or confirme
 test('consolidation stays inside the owner', function (): void {
     $acme = workspace('Acme');
     $globex = workspace('Globex');
-    notes(new MemoryContext($acme), 6);
-    $faded = memory(new MemoryContext($globex), 'Old freeze.', MemoryKind::Context, ['created_at' => now()->subDays(120)]);
+    notes(new MemoryContext(owner: $acme), 6);
+    $faded = memory(new MemoryContext(owner: $globex), 'Old freeze.', MemoryKind::Context, ['created_at' => now()->subDays(120)]);
 
     ConsolidateMemories::dispatchSync($globex);
 
@@ -107,13 +107,50 @@ test('the command queues one consolidation per owner', function (): void {
     Queue::fake();
     $acme = workspace('Acme');
     $globex = workspace('Globex');
-    memory(new MemoryContext($acme), 'Acme lesson.');
-    memory(new MemoryContext($acme), 'Another Acme lesson.');
-    memory(new MemoryContext($globex), 'Globex lesson.');
+    memory(new MemoryContext(owner: $acme), 'Acme lesson.');
+    memory(new MemoryContext(owner: $acme), 'Another Acme lesson.');
+    memory(new MemoryContext(owner: $globex), 'Globex lesson.');
 
     $this->artisan('memory:consolidate')->assertSuccessful();
 
     Queue::assertPushed(ConsolidateMemories::class, 2);
     Queue::assertPushed(ConsolidateMemories::class, fn (ConsolidateMemories $job): bool => $job->owner->is($acme));
     Queue::assertPushed(ConsolidateMemories::class, fn (ConsolidateMemories $job): bool => $job->owner->is($globex));
+});
+
+test('the command reports memories whose owner no longer exists', function (): void {
+    $gone = workspace('Gone');
+    memory(new MemoryContext(owner: $gone), 'Orphan lesson.');
+    memory(new MemoryContext(owner: workspace('Kept')), 'Kept lesson.');
+    $gone->delete();
+
+    $this->artisan('memory:consolidate', ['--sync' => true])
+        ->expectsOutputToContain('1 memories belong to 1 owners that no longer exist. Run with --prune to delete them.')
+        ->assertSuccessful();
+
+    expect(AgentMemory::count())->toBe(2);
+});
+
+test('the command prunes only the memories whose owner no longer exists', function (): void {
+    $gone = workspace('Gone');
+    memory(new MemoryContext(owner: $gone), 'Orphan lesson.');
+    memory(new MemoryContext(owner: workspace('Kept')), 'Kept lesson.');
+    $gone->delete();
+
+    $this->artisan('memory:consolidate', ['--sync' => true, '--prune' => true])
+        ->expectsOutputToContain('Deleted 1 memories of 1 owners that no longer exist.')
+        ->assertSuccessful();
+
+    expect(AgentMemory::pluck('content')->all())->toBe(['Kept lesson.']);
+});
+
+test('a queued consolidation for a deleted owner is dropped without failing', function (): void {
+    $workspace = workspace();
+    memory(new MemoryContext(owner: $workspace), 'A lesson.');
+    $job = new ConsolidateMemories($workspace);
+    $workspace->delete();
+
+    dispatch($job);
+
+    expect(AgentMemory::count())->toBe(1);
 });

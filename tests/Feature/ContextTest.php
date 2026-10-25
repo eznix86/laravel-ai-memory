@@ -12,8 +12,8 @@ use Tests\Fixtures\User;
 
 test('a memory from one workspace never appears in another workspace', function (): void {
     $user = user();
-    $acme = new MemoryContext(workspace('Acme'), $user);
-    $globex = new MemoryContext(workspace('Globex'), $user);
+    $acme = new MemoryContext(user: $user, owner: workspace('Acme'));
+    $globex = new MemoryContext(user: $user, owner: workspace('Globex'));
 
     memory($acme, 'Acme closes its books on the 25th.');
 
@@ -29,11 +29,11 @@ test('a owner with the same key but another type is a different owner', function
     $workspace = workspace();
     $user = user();
 
-    memory(new MemoryContext($workspace), 'Workspace lesson.');
+    memory(new MemoryContext(owner: $workspace), 'Workspace lesson.');
 
     $impostor = (new User)->forceFill(['id' => (string) $workspace->getKey()]);
 
-    expect(AgentMemory::forContext(new MemoryContext($impostor, $user))->count())->toBe(0);
+    expect(AgentMemory::forContext(new MemoryContext(user: $user, owner: $impostor))->count())->toBe(0);
 });
 
 test('a user preference is loaded for that user and not for a colleague', function (): void {
@@ -41,11 +41,11 @@ test('a user preference is loaded for that user and not for a colleague', functi
     $ada = user('Ada');
     $bob = user('Bob');
 
-    memory(new MemoryContext($workspace, $ada), 'Ada prefers answers in bullet points.', MemoryKind::Preference);
+    memory(new MemoryContext(user: $ada, owner: $workspace), 'Ada prefers answers in bullet points.', MemoryKind::Preference);
 
     AssistantAgent::fake(['Hello', 'Hello']);
-    (new AssistantAgent(new MemoryContext($workspace, $ada)))->prompt('Hi');
-    (new AssistantAgent(new MemoryContext($workspace, $bob)))->prompt('Hi');
+    (new AssistantAgent(new MemoryContext(user: $ada, owner: $workspace)))->prompt('Hi');
+    (new AssistantAgent(new MemoryContext(user: $bob, owner: $workspace)))->prompt('Hi');
 
     expect(AssistantAgent::$instructions[0])->toContain('Ada prefers answers in bullet points.')
         ->and(AssistantAgent::$instructions[1])->not->toContain('Ada prefers');
@@ -54,14 +54,14 @@ test('a user preference is loaded for that user and not for a colleague', functi
 test('a context without a user sees only owner-wide memories', function (): void {
     $workspace = workspace();
 
-    memory(new MemoryContext($workspace, user()), 'Personal.', MemoryKind::Preference);
-    memory(new MemoryContext($workspace), 'Shared.');
+    memory(new MemoryContext(user: user(), owner: $workspace), 'Personal.', MemoryKind::Preference);
+    memory(new MemoryContext(owner: $workspace), 'Shared.');
 
-    expect(AgentMemory::forContext(new MemoryContext($workspace))->pluck('content')->all())->toBe(['Shared.']);
+    expect(AgentMemory::forContext(new MemoryContext(owner: $workspace))->pluck('content')->all())->toBe(['Shared.']);
 });
 
 test('live excludes expired, archived and superseded memories', function (): void {
-    $context = new MemoryContext(workspace());
+    $context = new MemoryContext(owner: workspace());
 
     $kept = memory($context, 'Still true.', attributes: ['expires_at' => now()->addDay()]);
     memory($context, 'Expired.', attributes: ['expires_at' => now()->subMinute()]);
@@ -70,3 +70,18 @@ test('live excludes expired, archived and superseded memories', function (): voi
 
     expect(AgentMemory::forContext($context)->live()->pluck('content')->all())->toBe(['Still true.']);
 });
+
+test('without an owner, the user owns the memories and they stay private', function (): void {
+    $ada = user('Ada');
+    $bob = user('Bob');
+
+    memory(new MemoryContext(user: $ada), 'Ada ships the release notes on Fridays.');
+
+    expect(AgentMemory::forContext(new MemoryContext(user: $ada))->pluck('content')->all())->toBe(['Ada ships the release notes on Fridays.'])
+        ->and(AgentMemory::forContext(new MemoryContext(user: $bob))->count())->toBe(0)
+        ->and(AgentMemory::sole()->owner->is($ada))->toBeTrue();
+});
+
+test('a context needs a user or an owner', function (): void {
+    new MemoryContext;
+})->throws(InvalidArgumentException::class, 'needs a user, an owner, or both');
