@@ -17,6 +17,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ConsolidateMemories implements ShouldQueue
 {
@@ -96,7 +97,15 @@ class ConsolidateMemories implements ShouldQueue
                 'importance' => $answer['importance'] ?? null,
                 'source' => 'consolidation',
             ]);
-        } catch (RejectedMemory) {
+        } catch (RejectedMemory $exception) {
+            Log::warning('Memory consolidation kept the originals because the merged note was rejected.', [
+                'tenant_type' => $first->tenant_type,
+                'tenant_id' => $first->tenant_id,
+                'subject' => $first->subject,
+                'reason' => $exception->getMessage(),
+                'note' => $answer['content'] ?? null,
+            ]);
+
             return;
         }
 

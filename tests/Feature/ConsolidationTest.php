@@ -8,7 +8,9 @@ use Eznix86\AI\Memory\Jobs\ConsolidateMemories;
 use Eznix86\AI\Memory\MemoryContext;
 use Eznix86\AI\Memory\Models\AgentMemory;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Laravel\Ai\Prompts\AgentPrompt;
 
 function notes(MemoryContext $context, int $count, string $subject = 'customer:42'): Collection
@@ -58,15 +60,18 @@ test('personal and shared memories on the same subject are merged apart', functi
     MemoryConsolidator::assertNeverPrompted();
 });
 
-test('a merge the writer rejects changes nothing', function (): void {
+test('a merge the writer rejects changes nothing and logs why', function (): void {
+    Log::spy();
     $workspace = workspace();
     notes(new MemoryContext($workspace), 6);
-
     MemoryConsolidator::fake([['content' => 'Pay with card 4111 1111 1111 1111.', 'importance' => 0.5]]);
 
     ConsolidateMemories::dispatchSync($workspace);
 
     expect(AgentMemory::live()->count())->toBe(6);
+    Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message, array $context): bool => $context['subject'] === 'customer:42'
+        && Str::contains($context['reason'], 'card number')
+        && $context['note'] === 'Pay with card 4111 1111 1111 1111.');
 });
 
 test('faded memories are archived, but never the ones a person wrote or confirmed', function (): void {
