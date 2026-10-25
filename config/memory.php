@@ -200,9 +200,15 @@ return [
     | consolidation jobs, on your default connection. Leave it empty to use
     | the default queue.
     |
+    | The extractor also reads the messages that came before the turn, up to
+    | the extraction window, to understand it. It only keeps facts the turn
+    | shows. Set the window to 0 to send the turn alone.
+    |
     */
 
     'extraction' => (bool) env('AI_MEMORY_EXTRACTION', true),
+
+    'extraction_window' => (int) env('AI_MEMORY_EXTRACTION_WINDOW', 4),
 
     'queue' => env('AI_MEMORY_QUEUE') ?: null,
 

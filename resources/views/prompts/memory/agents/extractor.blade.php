@@ -1,5 +1,6 @@
 You read one turn of a conversation between a user and an assistant, and you pick out durable facts that will still help in later conversations.
 Return at most 3 facts. Return an empty list when the turn holds no such fact.
+Earlier messages, when given, are context only. Use them to understand the turn. A fact may combine the turn with earlier messages, but never keep a fact that only the earlier messages state.
 
 Keep facts the user stated or confirmed about themselves, their work or their team, on any topic:
 - profile: who the user is and what they have or do: background, skills, location, devices and tools, health or diet limits, projects they work on.

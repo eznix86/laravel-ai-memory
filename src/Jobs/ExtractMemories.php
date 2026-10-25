@@ -28,6 +28,8 @@ class ExtractMemories implements ShouldQueue
 
     /**
      * Create a new job instance.
+     *
+     * @param  array<int, array{role: string, text: string}>  $earlier
      */
     public function __construct(
         public Model $owner,
@@ -35,25 +37,29 @@ class ExtractMemories implements ShouldQueue
         public ?string $conversation,
         public string $message,
         public string $reply,
+        public array $earlier = [],
     ) {
         $this->onQueue(config('memory.queue'));
     }
 
     /**
-     * Store the facts the user stated or confirmed in the turn.
+     * Store the facts the user stated or confirmed in the turn, read with the messages before it.
      */
     public function handle(MemoryWriter $writer, Grounding $grounding): void
     {
         $context = new MemoryContext(user: $this->user, owner: $this->owner, conversation: $this->conversation);
 
         $answer = (new MemoryExtractor)->ask(Prompt::render('prompts.memory.agents.extractor-prompt', [
+            'earlier' => $this->earlier,
             'message' => $this->message,
             'reply' => $this->reply,
         ]));
 
+        $said = collect($this->earlier)->where('role', 'user')->pluck('text')->push($this->message)->implode("\n");
+
         collect((array) ($answer['facts'] ?? []))
             ->take(MemoryExtractor::MAX_FACTS)
-            ->filter(fn (array $fact): bool => $grounding->isGrounded((string) ($fact['content'] ?? ''), $this->message))
+            ->filter(fn (array $fact): bool => $grounding->isGrounded((string) ($fact['content'] ?? ''), $said))
             ->each(function (array $fact) use ($writer, $context): void {
                 try {
                     $writer->write($context, [

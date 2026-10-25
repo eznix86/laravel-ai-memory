@@ -87,8 +87,11 @@ abstract class EvalTestCase extends TestCase
      */
     protected function extractFrom(MemoryContext $context, array $turns): void
     {
-        collect($turns)->chunk(2)->each(fn (Collection $turn) => ExtractMemories::dispatchSync(
+        $window = (int) config('memory.extraction_window');
+
+        collect($turns)->values()->chunk(2)->each(fn (Collection $turn) => ExtractMemories::dispatchSync(
             $context->owner, $context->user, null, $turn->first()['text'], (string) ($turn->skip(1)->first()['text'] ?? ''),
+            $window > 0 ? array_slice($turns, max(0, $turn->keys()->first() - $window), min($window, $turn->keys()->first())) : [],
         ));
     }
 
