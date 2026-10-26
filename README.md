@@ -2,9 +2,9 @@
 
 ![Banner](./art/banner.png)
 
-Long-term memory for agents of the [Laravel AI SDK](https://github.com/laravel/ai). Your agent remembers the preferences of a user, how the team works, corrections and notes about customers. The package keeps all memories in one PostgreSQL table.
+Long-term memory for agents of the [Laravel AI SDK](https://github.com/laravel/ai), in one PostgreSQL table.
 
-Use memory for facts that no system holds. For invoices, records and statuses, use a tool.
+The agent keeps what users tell it about themselves and their work: who they are, what they like, what they work on and how their team works. Data that changes in your own systems, such as invoices or order statuses, stays there. Give the agent a tool to read it.
 
 - [Requirements](#requirements)
 - [Add it to your project](#add-it-to-your-project)
