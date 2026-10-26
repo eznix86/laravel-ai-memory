@@ -14,13 +14,15 @@ $context = new MemoryContext(
 
 A context needs a user, an owner, or both.
 
-**Without an owner**, the user owns the memories. Only that user sees them. Use this for a single-user app:
+**Without an owner**, the user is also the owner. All memories of that user are private, of all kinds. The kind then changes only how fast a memory fades, and which memories load first. Use this for a single-user app:
 
 ```php
 new MemoryContext(user: $user);
 ```
 
 **With an owner**, such as a team, the team shares most memories. The profile and preference memories of each user stay private.
+
+**Use one rule in your app.** The memories of a context without an owner do not show in a team context, because the owner is different. If your app uses both, each user gets two separate sets of memories. The limit of active memories counts each context separately. The weekly clean-up works on each owner separately.
 
 With the SDK's `RemembersConversations`, the agent can make the context from the conversation:
 
