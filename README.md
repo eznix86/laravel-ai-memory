@@ -7,7 +7,7 @@ Long-term memory for agents of the [Laravel AI SDK](https://github.com/laravel/a
 The agent keeps what users tell it about themselves and their work: who they are, what they like, what they work on and how their team works.
 
 - [Requirements](#requirements)
-- [Add it to your project](#add-it-to-your-project)
+- [Getting started](#getting-started)
 - [The memory context](docs/memory-context.md)
 - [Injecting memory](#injecting-memory)
 - [Languages](#languages)
@@ -36,7 +36,7 @@ The agent keeps what users tell it about themselves and their work: who they are
 
 See [Models](docs/customizing.md#models).
 
-## Add it to your project
+## Getting started
 
 **1. Install and migrate.** If you use Ollama, set `AI_MEMORY_DIMENSIONS` first.
 
