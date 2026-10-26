@@ -21,8 +21,20 @@ The agent keeps what users tell it about themselves and their work: who they are
 - Laravel AI SDK 1.3+
 - PostgreSQL with [pgvector](https://github.com/pgvector/pgvector). The migration adds the extension, so the database user must have that permission
 - A queue worker
+- An LLM (text model) with structured output, required
+  - extracts the facts after each turn
+  - decides on duplicates
+  - merges memories each week
+- An embedding model, required
+  - stores a vector for each fact
+  - finds the memories for each prompt
+  - searches with `RecallMemory`
+- A classification model, optional
+  - only with `AI_MEMORY_DECIDER=classification` or `AI_MEMORY_PERMISSION_GUARD=classification`
+- An LLM (text model) or a TypeSafe System One model, for evals only
+  - judges the answers in your Pest evals
 
-The package needs two models from `config/ai.php`: a text model with structured output for the memory agents, and an embedding model for the vectors. A classification model is optional, for the classification decider and guard. See [Models](docs/customizing.md#models).
+See [Models](docs/customizing.md#models).
 
 ## Add it to your project
 
