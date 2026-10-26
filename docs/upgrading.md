@@ -27,7 +27,7 @@ The env names also changed:
 php artisan migrate
 ```
 
-**4. Update your agents.** See [Add it to your project](../README.md#add-it-to-your-project).
+**4. Update your agents.** See [Getting started](../README.md#getting-started).
 
 | 1.x | 2.x |
 |---|---|
