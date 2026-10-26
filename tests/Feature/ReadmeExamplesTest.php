@@ -102,3 +102,21 @@ test('the documented example: a pattern for another language rejects its instruc
     expect($result)->toBe(__('memory::rejections.instruction'))
         ->and(Memories::list(new MemoryContext(user: user())))->toBeEmpty();
 });
+
+test('the documented example: an app listener injects a temporary memory for the user', function (): void {
+    Memories::fake();
+    $user = user();
+
+    Memories::add(new MemoryContext(user: $user), [
+        'kind' => 'context',
+        'content' => 'The user is travelling in Japan until 12 May.',
+        'source' => 'travel-mode',
+        'expires_at' => now()->addDays(10),
+    ]);
+
+    expect(Memories::list(new MemoryContext(user: $user))->pluck('content')->all())->toBe(['The user is travelling in Japan until 12 May.']);
+
+    $this->travel(11)->days();
+
+    expect(Memories::list(new MemoryContext(user: $user)))->toBeEmpty();
+});

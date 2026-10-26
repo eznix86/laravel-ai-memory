@@ -4,13 +4,15 @@
 
 Long-term memory for agents of the [Laravel AI SDK](https://github.com/laravel/ai), in one PostgreSQL table.
 
-The agent keeps what users tell it about themselves and their work: who they are, what they like, what they work on and how their team works. Data that changes in your own systems, such as invoices or order statuses, stays there. Give the agent a tool to read it.
+The agent keeps what users tell it about themselves and their work: who they are, what they like, what they work on and how their team works.
 
 - [Requirements](#requirements)
 - [Add it to your project](#add-it-to-your-project)
 - [The memory context](docs/memory-context.md)
+- [Injecting memory](#injecting-memory)
+- [Languages](#languages)
 - [Testing](#testing)
-- [Documentation](#documentation)
+- [Extending the package](#extending-the-package)
 - [Migrating from 1.x to 2.x](docs/upgrading.md)
 
 ## Requirements
@@ -96,6 +98,45 @@ The context tells which memories the agent reads and writes. With only a user, t
 Schedule::command('memory:consolidate')->weeklyOn(0, '03:00');
 ```
 
+## Injecting memory
+
+Your app can also give facts to the agent, for example from a settings page or an app event:
+
+```php
+use Eznix86\AI\Memory\Facades\Memories;
+use Eznix86\AI\Memory\MemoryContext;
+
+class RememberTravelMode
+{
+    public function handle(TravelModeEnabled $event): void
+    {
+        Memories::add(new MemoryContext(user: $event->user), [
+            'kind' => 'context',
+            'content' => "The user is travelling in {$event->country} until {$event->until->format('j F')}.",
+            'source' => 'travel-mode',
+            'expires_at' => $event->until,
+        ]);
+    }
+}
+```
+
+The memory ends at `expires_at`. Add `creator: $admin` when a person writes it. See [Adding memories from your application](docs/managing-memories.md#adding-memories-from-your-application).
+
+## Languages
+
+Facts stay in the language of the user. For other languages, set the keyword search before you migrate, and translate the short messages that the agent reads:
+
+```bash
+# .env, before php artisan migrate
+AI_MEMORY_FULLTEXT_LANGUAGE=simple
+```
+
+```bash
+php artisan vendor:publish --tag=memory-lang
+```
+
+Then copy `lang/vendor/memory/en` to a folder for your language, and translate the lines. See [Languages](docs/languages.md).
+
 ## Testing
 
 | Level | Checks | Model calls |
@@ -134,7 +175,7 @@ test('a fact told in one conversation is known in the next one', function () {
 
 For all the examples, see [docs/testing.md](docs/testing.md).
 
-## Documentation
+## Extending the package
 
 - [How it works](docs/how-it-works.md): one turn, and the path of a fact through the writer
 - [The memory context](docs/memory-context.md)
