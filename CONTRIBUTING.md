@@ -1,23 +1,29 @@
 # Contributing
 
-The tests need PostgreSQL with pgvector. Copy `.env.example` to `.env`: it lists every variable the tests read.
+The tests need PostgreSQL with pgvector. Copy `.env.example` to `.env`. This file shows all the variables that the tests read.
 
 ```bash
 cp .env.example .env
 ./vendor/bin/pest
 ```
 
-With `DB_HOST` set, the tests use that database. Without it, they start a pgvector container with [Testcontainers](https://testcontainers.com), so Docker must be running.
+If `DB_HOST` is set, the tests use that database. If not, they start a pgvector container with [Testcontainers](https://testcontainers.com). Docker must then run.
 
-This runs the unit and feature tests, which call no model. The tests in `tests/Evals` are [Pest evals](https://pestphp.com/docs/evals): they call real models with cases in English, French, Chinese and Japanese, including real conversations from [OpenAssistant OASST2](https://huggingface.co/datasets/OpenAssistant/oasst2) (Apache-2.0). They are skipped unless you pass `--evals`. They use the same `AI_MEMORY_*` settings as an application, and the provider keys of `config/ai.php`. A classification model judges whether the stored memories hold the expected fact, by default TypeSafe, so set `TYPESAFE_API_KEY` too:
+This command runs the unit and feature tests. They call no model.
+
+The tests in `tests/Evals` are [Pest evals](https://pestphp.com/docs/evals). They call real models, with cases in English, French, Chinese and Japanese. Some cases are real conversations from [OpenAssistant OASST2](https://huggingface.co/datasets/OpenAssistant/oasst2) (Apache-2.0).
+
+- The evals run only with `--evals`.
+- They use the same `AI_MEMORY_*` settings as an app, and the provider keys of `config/ai.php`.
+- A classification model checks if the stored memories contain the expected fact. By default this is TypeSafe, so also set `TYPESAFE_API_KEY`.
 
 ```bash
 ./vendor/bin/pest --evals
 ```
 
-Cases marked `(holdout)` were not used to write the prompts. They show how a model and the prompts do on text they were not tuned for.
+Cases marked `(holdout)` were not used to write the prompts. They show the results of a model and the prompts on new text.
 
-Before a pull request, run the checks:
+Before you open a pull request, run the checks:
 
 ```bash
 ./vendor/bin/pint

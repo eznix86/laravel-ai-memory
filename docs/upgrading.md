@@ -8,7 +8,9 @@
 composer require eznix86/laravel-ai-memory:^2.0 laravel/ai:^1.3
 ```
 
-**2. Replace a published `config/memory.php`.** The 1.x file sets `table` to `memories`, so the 2.x migration would try to create its table there. Delete the file, then publish it again if you need it. The env names changed too:
+**2. Replace a published `config/memory.php`.** In the 1.x file, `table` is `memories`. With this file, the 2.x migration tries to make its table with the same name. Delete the file. Publish it again if you need it.
+
+The env names also changed:
 
 | 1.x | 2.x |
 |---|---|
@@ -19,13 +21,13 @@ composer require eznix86/laravel-ai-memory:^2.0 laravel/ai:^1.3
 | `MEMORY_SIMILARITY_THRESHOLD` | `AI_MEMORY_RECALL_MIN_SIMILARITY` |
 | `MEMORY_RECALL_OVERSAMPLE_FACTOR` | removed |
 
-**3. Migrate.** This creates `agent_memories` and leaves `memories` in place.
+**3. Migrate.** This makes the `agent_memories` table. The `memories` table stays.
 
 ```bash
 php artisan migrate
 ```
 
-**4. Update your agents**, as in [Add it to your project](../README.md#add-it-to-your-project):
+**4. Update your agents.** See [Add it to your project](../README.md#add-it-to-your-project).
 
 | 1.x | 2.x |
 |---|---|
@@ -39,15 +41,18 @@ php artisan migrate
 
 `AgentMemory` is now the Eloquent model in `Eznix86\AI\Memory\Models`.
 
-**5. Import the old memories.** Start with a dry run to see what would happen:
+**5. Import the old memories.** Do a dry run first:
 
 ```bash
 php artisan memory:import-v1 --user-model="App\Models\User" --dry-run
 php artisan memory:import-v1 --user-model="App\Models\User"
 ```
 
-Each old row is written for the user its `user_id` points to, as a personal `profile` memory with its old date. Pass `--kind` for another kind, and `--table` if your 1.x table had another name. The rows go through the writer like any new fact, so a repeated memory is skipped, and secrets, instructions and memories longer than 300 characters are rejected. The command prints a table of what happened to the rows, and running it again skips the rows it already imported.
+- The command writes each old row for the user of its `user_id`, as a personal `profile` memory with its old date.
+- Add `--kind` for a different kind. Add `--table` if your 1.x table has a different name.
+- The writer checks each row as a new fact. It skips repeated memories. It rejects secrets, instructions and texts longer than 300 characters.
+- The command shows a table of the results. If you run it again, it skips the rows that it already imported.
 
-Each row costs one embedding call, and one call to the duplicate decider when a close memory exists.
+Each row costs one embedding call. When a close memory exists, it also costs one call to the duplicate decider.
 
-**6. Drop the old table** when you have checked the result with `Memories::list()`.
+**6. Drop the old table** after you check the result with `Memories::list()`.

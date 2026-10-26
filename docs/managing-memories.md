@@ -1,6 +1,6 @@
 # Managing memories
 
-The `Memories` facade is the API for a memory page in your application:
+Use the `Memories` facade to make a memory page in your app:
 
 ```php
 use Eznix86\AI\Memory\Enums\MemoryKind;
@@ -16,11 +16,15 @@ Memories::export($user);
 Memories::purge($workspace, 'customer:42');
 ```
 
-`add` with `creator:` and `edit` mark the memory as written or confirmed by that person, and go through the same checks as the agent. `export` returns all of a user's memories, archived and superseded ones included. `purge` removes every memory about a subject in the owner, for privacy requests.
+| Method | What it does |
+|---|---|
+| `add` with `creator:`, `edit` | Mark the memory as written or confirmed by that person. The same checks as for the agent apply |
+| `export` | Gives all memories of a user, also the archived and superseded ones |
+| `purge` | Deletes all memories about one subject in the owner, for a privacy request |
 
 ## Adding memories from your application
 
-Your application can write memories too, for example from an onboarding form, a CRM import or a team rule an admin sets. Use `Memories::add()` with the context the memory belongs to. Pass `creator:` when a person wrote it:
+Your app can also write memories, for example from an onboarding form, a CRM import or a team rule from an admin. Use `Memories::add()` with the context of the memory. Add `creator:` when a person wrote it:
 
 ```php
 // written by the application: profile and preference memories are personal
@@ -47,14 +51,16 @@ Memories::add(new MemoryContext(owner: $team), [
 
 | Writer | `source` | Archived when the context is full or the memory fades |
 |---|---|---|
-| A person, with `creator:` | `user`, or the one you pass | Never |
-| Your application, without `creator:` | `app`, or the one you pass | Yes, like the memories the agent writes |
+| A person, with `creator:` | `user`, or the source you give | Never |
+| Your app, without `creator:` | `app`, or the source you give | Yes, as for the memories of the agent |
 
-Every memory goes through the writer: secrets and instructions are rejected, and a close memory may make it a duplicate. A rule for every user of your application is not a memory. Put it in the agent's `instructions()`.
+The writer checks all memories. It rejects secrets and instructions, and it can skip a fact that a close memory already says.
+
+A rule for all users of your app is not a memory. Put it in the agent's `instructions()`.
 
 ## Who can edit memories
 
-`MemoryPolicy` lets users update and delete their own memories. Shared memories need an owner administrator. Extend the policy to say who that is:
+`MemoryPolicy` lets users edit and delete their own memories. For a shared memory, the user must be an administrator of the owner. Extend the policy to tell who the administrators are:
 
 ```php
 use Eznix86\AI\Memory\Models\AgentMemory;

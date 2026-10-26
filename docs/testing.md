@@ -1,6 +1,6 @@
 # Testing your application
 
-Test memory at three levels, like the rest of your app:
+Test memory at three levels, as for the rest of your app:
 
 | Level | What it checks | Calls a model |
 |---|---|---|
@@ -10,7 +10,7 @@ Test memory at three levels, like the rest of your app:
 
 ## Unit tests
 
-Your policy decides who may edit shared memories. Test it without a database:
+Your policy controls who can edit shared memories. Test it without a database:
 
 ```php
 use App\Policies\AgentMemoryPolicy;
@@ -27,19 +27,25 @@ test('a team admin can edit a shared memory, a member cannot', function () {
 });
 ```
 
-This assumes `isAdminOf()` compares the team's `admin_id`. Fill the attributes your own method reads.
+This example uses an `isAdminOf()` method that compares the `admin_id` of the team. Set the attributes that your method reads.
 
 ## Feature tests
 
-Call `Memories::fake()` in every feature test that prompts a memory agent. It fakes everything the package calls:
+Call `Memories::fake()` in each feature test that prompts a memory agent. It fakes all the calls of the package:
 
-- embeddings, with word-count vectors, so texts that share words are similar
-- the decider and the classification, which answer `add`
-- the extractor, which finds no facts
-- the consolidator, which answers "Merged note."
-- the agent permission guard, which finds no permission
+- embeddings, with word-count vectors. Texts with the same words are similar
+- the decider and the classification. They answer `add`
+- the extractor. It finds no facts
+- the consolidator. It answers "Merged note."
+- the agent permission guard. It finds no permission
 
-Then fake what your agent answers, prompt it, and check what was stored with `Memories::list()`. The SDK's fake does not keep the instructions, so check the stored memories, not the prompt.
+Then:
+
+1. Fake the answer of your agent.
+2. Prompt the agent.
+3. Check the stored memories with `Memories::list()`.
+
+The SDK's fake does not keep the instructions. So check the stored memories, not the prompt.
 
 ```php
 use Eznix86\AI\Memory\Agents\MemoryDecider;
@@ -92,11 +98,11 @@ test('a repeated fact is not stored twice', function () {
 });
 ```
 
-The extraction test needs the `sync` queue, the default of a Laravel test suite. A faked fact is still checked: it must use the user's words, or it is dropped.
+The extraction test needs the `sync` queue. A Laravel test suite uses it by default. The writer also checks a faked fact: if the fact does not use the user's words, the job drops it.
 
 ## Eval tests
 
-Fakes check your wiring, not your model. [Pest evals](https://pestphp.com/docs/evals) prompt your agent with your real model, and a judge model scores the answer. Install the plugin and choose the judge in `tests/Pest.php`:
+Fakes check the connections in your code, not your model. [Pest evals](https://pestphp.com/docs/evals) prompt your agent with your real model. Then a judge model gives the answer a score. Install the plugin, and set the judge in `tests/Pest.php`:
 
 ```bash
 composer require pestphp/pest-plugin-evals --dev
@@ -106,7 +112,11 @@ composer require pestphp/pest-plugin-evals --dev
 pest()->evals()->judgeUsingLaravelAiClassifier();
 ```
 
-Do not call `Memories::fake()` in evals. Keep the `sync` queue, so extraction runs before the next prompt. Use the same `AI_MEMORY_*` settings as production, temperature included.
+In evals:
+
+- Do not call `Memories::fake()`.
+- Keep the `sync` queue, so the extraction runs before the next prompt.
+- Use the same `AI_MEMORY_*` settings as in production, also the temperature.
 
 ```php
 use Eznix86\AI\Memory\Facades\Memories;
@@ -154,10 +164,12 @@ test('a task with nothing about the user leaves no memory', function () {
 });
 ```
 
-`toHaveToolCalls()` reads tool calls as JSON, so the third eval returns them from a closure. Evals are skipped unless you pass `--evals`, and each one costs real model calls:
+`toHaveToolCalls()` reads the tool calls as JSON. So the third eval gets them from a closure.
+
+Evals run only with `--evals`. Each eval costs real model calls:
 
 ```bash
 ./vendor/bin/pest --evals
 ```
 
-Write evals with your users' own kind of messages: the facts they state, the tasks that should leave nothing. Models answer differently from run to run, so run an eval twice before you trust a change.
+Write evals with the type of messages that your users send: the facts they tell, and the tasks that must leave no memory. A model can give a different answer each time. So run an eval two times before you trust a change.
