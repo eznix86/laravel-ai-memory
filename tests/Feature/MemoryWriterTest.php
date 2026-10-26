@@ -31,7 +31,7 @@ test('a fact is stored in the owner with its source and an embedding', function 
         ->kind->toBe(MemoryKind::Process)
         ->source->toBe('test')
         ->importance->toBe(0.5)
-        ->embedding->toHaveCount(Embedder::dimensions());
+        ->embedding->toHaveCount(app(Embedder::class)->dimensions());
 
     Embeddings::assertGenerated(fn (EmbeddingsPrompt $prompt): bool => $prompt->inputs === ['team:billing · process: Invoices are sent on the first Monday.']);
 });

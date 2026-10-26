@@ -49,7 +49,7 @@ class ExtractMemories implements ShouldQueue
     {
         $context = new MemoryContext(user: $this->user, owner: $this->owner, conversation: $this->conversation);
 
-        $answer = (new MemoryExtractor)->ask(Prompt::render('prompts.memory.agents.extractor-prompt', [
+        $answer = app(MemoryExtractor::class)->ask(Prompt::render('prompts.memory.agents.extractor-prompt', [
             'earlier' => $this->earlier,
             'message' => $this->message,
             'reply' => $this->reply,

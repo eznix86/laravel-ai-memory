@@ -15,7 +15,7 @@ class AgentPermissionGuard implements GuardsPermissions
      */
     public function grantsPermission(string $content): bool
     {
-        $answer = (new PermissionChecker)->ask(Prompt::render('prompts.memory.agents.permission-prompt', ['fact' => $content]));
+        $answer = app(PermissionChecker::class)->ask(Prompt::render('prompts.memory.agents.permission-prompt', ['fact' => $content]));
 
         return ($answer['grants_permission'] ?? false) === true;
     }

@@ -8,14 +8,14 @@ use Illuminate\Support\Str;
 use Laravel\Ai\Ai;
 use RuntimeException;
 
-final class Embedder
+class Embedder
 {
     /**
      * Embed the text with the memory embedding provider and model.
      *
      * @return array<int, float>
      */
-    public static function embed(string $text): array
+    public function embed(string $text): array
     {
         return Str::of($text)->toEmbeddings(
             provider: config('memory.embeddings_provider'),
@@ -29,7 +29,7 @@ final class Embedder
      *
      * @throws RuntimeException
      */
-    public static function dimensions(): int
+    public function dimensions(): int
     {
         $dimensions = config('memory.dimensions') ?? Ai::embeddingProvider(config('memory.embeddings_provider'))->defaultEmbeddingsDimensions();
 

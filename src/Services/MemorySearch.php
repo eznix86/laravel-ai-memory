@@ -27,7 +27,7 @@ class MemorySearch
     public function rank(MemoryContext $context, string $query, int $limit, bool $includeArchived = false, array $except = []): Collection
     {
         $language = config('memory.fulltext_language');
-        $vector = Embedder::embed($query);
+        $vector = app(Embedder::class)->embed($query);
         $anyWord = Str::matchAll('/[\p{L}\p{N}]+/u', $query)->unique()->implode(' | ');
 
         $keywords = $this->candidates($context, $includeArchived, $except)

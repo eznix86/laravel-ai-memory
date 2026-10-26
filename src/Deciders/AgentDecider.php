@@ -20,7 +20,7 @@ class AgentDecider implements DecidesDuplicates
      */
     public function decide(AgentMemory $memory, Collection $candidates): array
     {
-        $answer = (new MemoryDecider)->ask(Prompt::render('prompts.memory.agents.decider-prompt', [
+        $answer = app(MemoryDecider::class)->ask(Prompt::render('prompts.memory.agents.decider-prompt', [
             'memory' => $memory,
             'candidates' => $candidates,
         ]));

@@ -17,6 +17,7 @@ use Eznix86\AI\Memory\PermissionGuards\NoPermissionGuard;
 use Eznix86\AI\Memory\Policies\MemoryPolicy;
 use Eznix86\AI\Memory\Services\MemoryManager;
 use Eznix86\AI\Memory\Services\MemoryWriter;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -37,16 +38,16 @@ class MemoryServiceProvider extends ServiceProvider
         $this->app->singleton(MemoryWriter::class);
         $this->app->singleton(MemoryManager::class);
 
-        $this->app->bind(DecidesDuplicates::class, fn (): DecidesDuplicates => match (config('memory.decider')) {
-            'classification' => new ClassificationDecider,
-            default => new AgentDecider,
-        });
+        $this->app->bind(DecidesDuplicates::class, fn (Application $app): DecidesDuplicates => $app->make(match (config('memory.decider')) {
+            'classification' => ClassificationDecider::class,
+            default => AgentDecider::class,
+        }));
 
-        $this->app->bind(GuardsPermissions::class, fn (): GuardsPermissions => match (config('memory.permission_guard')) {
-            'agent' => new AgentPermissionGuard,
-            'classification' => new ClassificationPermissionGuard,
-            default => new NoPermissionGuard,
-        });
+        $this->app->bind(GuardsPermissions::class, fn (Application $app): GuardsPermissions => $app->make(match (config('memory.permission_guard')) {
+            'agent' => AgentPermissionGuard::class,
+            'classification' => ClassificationPermissionGuard::class,
+            default => NoPermissionGuard::class,
+        }));
     }
 
     /**

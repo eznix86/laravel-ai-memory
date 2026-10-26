@@ -90,7 +90,7 @@ class ConsolidateMemories implements ShouldQueue
 
         $kind = $memories->countBy(fn (AgentMemory $memory): string => $memory->kind->value)->sortDesc()->keys()->first();
 
-        $answer = (new MemoryConsolidator)->ask(Prompt::render('prompts.memory.agents.consolidator-prompt', [
+        $answer = app(MemoryConsolidator::class)->ask(Prompt::render('prompts.memory.agents.consolidator-prompt', [
             'subject' => $first->subject,
             'memories' => $memories,
         ]));

@@ -66,7 +66,7 @@ class Memories extends Facade
      */
     public static function embed(string $text): array
     {
-        $dimensions = Embedder::dimensions();
+        $dimensions = app(Embedder::class)->dimensions();
 
         $counts = Str::matchAll("/[a-z'-]+/", Str::lower($text))
             ->diff(['the', 'and', 'for', 'are', 'our', 'that', 'this', 'with', 'does', 'has', 'have', 'you', 'your'])

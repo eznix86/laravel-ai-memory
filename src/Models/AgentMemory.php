@@ -78,7 +78,7 @@ class AgentMemory extends Model
     {
         static::saving(function (AgentMemory $memory): void {
             if ($memory->isDirty(['content', 'subject', 'kind']) && ! $memory->isDirty('embedding')) {
-                $memory->embedding = Embedder::embed($memory->embeddingText());
+                $memory->embedding = app(Embedder::class)->embed($memory->embeddingText());
             }
         });
     }

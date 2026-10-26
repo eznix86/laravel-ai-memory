@@ -34,7 +34,7 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->foreignId('superseded_by')->nullable()->constrained(config('memory.table'))->nullOnDelete();
             $table->timestamp('archived_at')->nullable();
-            $table->vector('embedding', dimensions: Embedder::dimensions())->nullable();
+            $table->vector('embedding', dimensions: app(Embedder::class)->dimensions())->nullable();
             $table->timestamps();
 
             $table->vectorIndex('embedding');

@@ -345,6 +345,24 @@ The prompts are Blade views. To change one, put a file with the same name in you
 | `prompts.memory.classification.decider` | The classification decider question |
 | `prompts.memory.classification.permission.*` | The permission question and its two answers, used by both guards |
 
+## Extending the package
+
+The package resolves its agents, deciders, guards, services and embedder from the container. Bind your own class in a service provider to replace one:
+
+```php
+use Eznix86\AI\Memory\Agents\MemoryExtractor;
+
+$this->app->bind(MemoryExtractor::class, TeamExtractor::class);
+```
+
+| Class | Role |
+|---|---|
+| `Agents\MemoryExtractor`, `MemoryDecider`, `MemoryConsolidator`, `PermissionChecker` | The memory agents |
+| `Deciders\AgentDecider`, `ClassificationDecider`, or the `Contracts\DecidesDuplicates` contract | The duplicate decider |
+| `PermissionGuards\*`, or the `Contracts\GuardsPermissions` contract | The permission guard |
+| `Services\MemoryWriter`, `MemorySearch`, `MemoryManager`, `Grounding` | Writing, search, management, grounding |
+| `Embedder` | The vectors of memories and queries |
+
 ## Configuration
 
 Every option is documented in `config/memory.php`. The ones you are most likely to set:

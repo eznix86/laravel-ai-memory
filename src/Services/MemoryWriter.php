@@ -80,7 +80,7 @@ class MemoryWriter
             $memory->creator()->associate($fact['creator']);
         }
 
-        $memory->embedding = Embedder::embed($memory->embeddingText());
+        $memory->embedding = app(Embedder::class)->embed($memory->embeddingText());
 
         $candidates = $this->candidates($context, $memory);
 
