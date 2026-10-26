@@ -15,7 +15,7 @@ sequenceDiagram
     Q->>W: Up to 3 facts in the user's own words
 ```
 
-Every fact, from the job or from `Remember`, goes through the writer:
+All facts go through the writer, from the job and from `Remember`:
 
 ```mermaid
 flowchart TD
@@ -33,4 +33,4 @@ flowchart TD
     FULL -- yes --> AR[The weakest memories are archived]
 ```
 
-Unused memories fade, and the weekly job merges and archives them. Only people delete.
+Unused memories fade. The weekly job merges and archives them. Only a person can delete a memory.

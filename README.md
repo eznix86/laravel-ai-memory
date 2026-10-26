@@ -2,9 +2,9 @@
 
 ![Banner](./art/banner.png)
 
-Long-term memory for agents built with the [Laravel AI SDK](https://github.com/laravel/ai). Your agent remembers what a user prefers, how the team works, corrections and notes about customers. Everything is stored in one PostgreSQL table.
+Long-term memory for agents of the [Laravel AI SDK](https://github.com/laravel/ai). Your agent remembers the preferences of a user, how the team works, corrections and notes about customers. The package keeps all memories in one PostgreSQL table.
 
-Memory is for facts nobody can look up. Invoices, records and statuses belong in a tool.
+Use memory for facts that no system holds. For invoices, records and statuses, use a tool.
 
 - [Requirements](#requirements)
 - [Add it to your project](#add-it-to-your-project)
@@ -17,27 +17,27 @@ Memory is for facts nobody can look up. Invoices, records and statuses belong in
 
 - PHP 8.4+, Laravel 12.62+ or 13.15+
 - Laravel AI SDK 1.3+
-- PostgreSQL with [pgvector](https://github.com/pgvector/pgvector). The migration creates the extension, so its database user needs that right
+- PostgreSQL with [pgvector](https://github.com/pgvector/pgvector). The migration adds the extension, so the database user must have that permission
 - A queue worker
 
 ## Add it to your project
 
-**1. Install and migrate.** With Ollama, set `AI_MEMORY_DIMENSIONS` first.
+**1. Install and migrate.** If you use Ollama, set `AI_MEMORY_DIMENSIONS` first.
 
 ```bash
 composer require eznix86/laravel-ai-memory
 php artisan migrate
 ```
 
-**2. Run a queue worker.** Facts are extracted in a job after each turn.
+**2. Run a queue worker.** After each turn, a job extracts the facts.
 
-**3. Set a temperature of 0** for the memory model. Without it, some models return no facts.
+**3. Set the temperature of the memory model to 0.** If you do not, some models return no facts.
 
 ```bash
 AI_MEMORY_PROVIDER_OPTIONS='{"openrouter": {"temperature": 0}}'
 ```
 
-**4. Add memory to your agent**, next to your own tools and middleware:
+**4. Add memory to your agent.** Keep your own tools and middleware:
 
 ```php
 use Eznix86\AI\Memory\Contracts\HasMemory;
@@ -80,7 +80,7 @@ class SupportAgent implements Agent, HasMemory, HasMiddleware, HasTools
 }
 ```
 
-**5. Prompt it** with a context for the current user:
+**5. Prompt the agent** with a context for the current user:
 
 ```php
 $context = new MemoryContext(user: $request->user());
@@ -88,7 +88,7 @@ $context = new MemoryContext(user: $request->user());
 (new SupportAgent($context))->prompt($request->input('message'));
 ```
 
-The context decides whose memories the agent reads and writes. With a user only, they stay private to that user. Add `owner: $team` to share them with a team. Read [The memory context](docs/memory-context.md) before you go live: it explains owners, users and the kinds of memory.
+The context tells which memories the agent reads and writes. With only a user, the memories are private to that user. Add `owner: $team` to share them with a team. Read [The memory context](docs/memory-context.md) before you go to production. It explains owners, users and the kinds of memory.
 
 **6. Schedule the weekly clean-up** in `routes/console.php`:
 
@@ -100,8 +100,8 @@ Schedule::command('memory:consolidate')->weeklyOn(0, '03:00');
 
 | Level | Checks | Model calls |
 |---|---|---|
-| Unit | Your code around memory, such as your policy | No |
-| Feature | Your agent is wired to memory, with `Memories::fake()` | No |
+| Unit | Your code for memory, such as your policy | No |
+| Feature | The connection of your agent to memory, with `Memories::fake()` | No |
 | Eval | Your agent with your real model, with [Pest evals](https://pestphp.com/docs/evals) | Yes |
 
 ```php
@@ -132,13 +132,15 @@ test('a fact told in one conversation is known in the next one', function () {
 });
 ```
 
-All examples: [docs/testing.md](docs/testing.md).
+For all the examples, see [docs/testing.md](docs/testing.md).
 
 ## Documentation
 
 - [How it works](docs/how-it-works.md): one turn, and the path of a fact through the writer
 - [The memory context](docs/memory-context.md)
-  - [Owners, users and kinds](docs/memory-context.md#the-memory-context)
+  - [Owners and users](docs/memory-context.md#the-memory-context)
+  - [Kinds](docs/memory-context.md#kinds)
+  - [Subjects](docs/memory-context.md#subjects)
   - [Tools, middleware and skill](docs/memory-context.md#tools-middleware-and-skill)
 - [Safety, duplicates and decay](docs/safety.md)
   - [What the writer rejects](docs/safety.md#safety)
