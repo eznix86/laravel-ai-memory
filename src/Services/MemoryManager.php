@@ -40,15 +40,15 @@ class MemoryManager
     }
 
     /**
-     * Add a fact written by a person.
+     * Add a fact written by a person, or by the application when there is no creator.
      *
-     * @param  array{kind: MemoryKind|string, content: string, subject?: string|null, importance?: float|null, expires_at?: \DateTimeInterface|null, personal?: bool|null}  $fact
+     * @param  array{kind: MemoryKind|string, content: string, subject?: string|null, importance?: float|null, expires_at?: \DateTimeInterface|null, personal?: bool|null, source?: string|null}  $fact
      *
      * @throws RejectedMemory
      */
-    public function add(MemoryContext $context, Model $creator, array $fact): MemoryWrite
+    public function add(MemoryContext $context, array $fact, ?Model $creator = null): MemoryWrite
     {
-        return $this->writer->write($context, [...$fact, 'source' => 'user', 'creator' => $creator]);
+        return $this->writer->write($context, [...$fact, 'source' => $fact['source'] ?? ($creator instanceof Model ? 'user' : 'app'), 'creator' => $creator]);
     }
 
     /**

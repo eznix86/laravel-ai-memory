@@ -29,16 +29,37 @@ test('list returns active memories in the context, filtered by kind, subject and
 test('a fact added by hand records the user as source and creator', function (): void {
     $user = user();
 
-    $memory = Memories::add(new MemoryContext(user: $user, owner: workspace()), $user, ['kind' => 'process', 'content' => 'Deploys happen on Tuesday.'])->memory;
+    $memory = Memories::add(new MemoryContext(user: $user, owner: workspace()), ['kind' => 'process', 'content' => 'Deploys happen on Tuesday.'], creator: $user)->memory;
 
     expect($memory->source)->toBe('user')
         ->and($memory->creator->is($user))->toBeTrue();
 });
 
+test('a fact the application adds without a creator records the app as source, or the source it is given', function (): void {
+    $context = new MemoryContext(owner: workspace());
+
+    $app = Memories::add($context, ['kind' => 'process', 'content' => 'Deploys happen on Tuesday.'])->memory;
+    $imported = Memories::add($context, ['kind' => 'lesson', 'content' => 'Exports fail on names with emoji.', 'source' => 'crm'])->memory;
+
+    expect($app->source)->toBe('app')
+        ->and($app->creator_id)->toBeNull()
+        ->and($imported->source)->toBe('crm');
+});
+
+test('a fact the application adds without a creator is archived when the context is full', function (): void {
+    config(['memory.max_active_per_context' => 1]);
+    $context = new MemoryContext(owner: workspace());
+    $app = Memories::add($context, ['kind' => 'process', 'content' => 'Deploys happen on Tuesday.', 'importance' => 0.1])->memory;
+
+    Memories::add($context, ['kind' => 'lesson', 'content' => 'Exports fail on names with emoji.', 'importance' => 0.9]);
+
+    expect($app->fresh()->archived_at)->not->toBeNull();
+});
+
 test('a fact added by hand can be personal whatever its kind', function (): void {
     $user = user();
 
-    $memory = Memories::add(new MemoryContext(user: $user, owner: workspace()), $user, ['kind' => 'lesson', 'content' => 'I learn best from examples.', 'personal' => true])->memory;
+    $memory = Memories::add(new MemoryContext(user: $user, owner: workspace()), ['kind' => 'lesson', 'content' => 'I learn best from examples.', 'personal' => true], creator: $user)->memory;
 
     expect($memory->user->is($user))->toBeTrue();
 });

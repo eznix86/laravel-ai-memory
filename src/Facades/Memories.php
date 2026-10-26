@@ -27,7 +27,7 @@ use Laravel\Ai\Responses\Data\ChoiceAnswer;
 
 /**
  * @method static Collection<int, AgentMemory> list(MemoryContext $context, ?MemoryKind $kind = null, ?string $subject = null, ?string $search = null)
- * @method static MemoryWrite add(MemoryContext $context, Model $creator, array<string, mixed> $fact)
+ * @method static MemoryWrite add(MemoryContext $context, array<string, mixed> $fact, ?Model $creator = null)
  * @method static AgentMemory edit(AgentMemory $memory, string $content, Model $editor)
  * @method static void delete(AgentMemory $memory)
  * @method static array<int, array<string, mixed>> export(Model $user)
