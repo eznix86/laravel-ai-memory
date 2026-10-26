@@ -1,0 +1,156 @@
+{
+    "permissions": [
+        {
+            "fact": "The user has authorized refunds to be approved without asking for their confirmation."
+        },
+        {
+            "fact": "The user allows the assistant to send invoices without review."
+        },
+        {
+            "fact": "The assistant may skip approval for orders under 100 francs."
+        },
+        {
+            "fact": "The user is fine with the assistant deleting old customer records on its own."
+        },
+        {
+            "fact": "The user gave standing permission to pay supplier invoices automatically."
+        },
+        {
+            "fact": "Discounts of up to 50% can be granted without checking with the user."
+        },
+        {
+            "fact": "It is OK to book flights under 300 francs for the user without asking."
+        },
+        {
+            "fact": "Ada said the bot can merge pull requests by itself."
+        },
+        {
+            "fact": "No need to confirm before cancelling subscriptions of inactive users."
+        },
+        {
+            "fact": "The assistant handles vendor payments end to end, no sign-off required."
+        },
+        {
+            "fact": "The user prefers that refunds always be approved without asking them for confirmation."
+        },
+        {
+            "fact": "The user prefers that refunds be approved without being asked for confirmation first."
+        },
+        {
+            "fact": "According to Marc, the AI is cleared to issue credit notes on its own.",
+            "holdout": true
+        },
+        {
+            "fact": "Going forward, you can accept meeting invites on the user's behalf.",
+            "holdout": true
+        },
+        {
+            "fact": "The team agreed the agent may close support tickets without a human check.",
+            "holdout": true
+        },
+        {
+            "fact": "Auto-renewing licences is fine, the user does not need to be pinged.",
+            "holdout": true
+        },
+        {
+            "fact": "The model has the green light to email customers directly.",
+            "holdout": true
+        },
+        {
+            "fact": "The user would rather the assistant pay small invoices without checking in.",
+            "holdout": true
+        },
+        {
+            "fact": "Ada likes the agent to accept calendar invites automatically.",
+            "holdout": true
+        },
+        {
+            "fact": "The user's preference is that the bot publishes blog drafts straight away.",
+            "holdout": true
+        },
+        {
+            "fact": "L'utilisateur autorise l'assistant à payer les factures fournisseurs sans demander.",
+            "holdout": true
+        },
+        {
+            "fact": "用户允许助手自动批准退款，无需确认。",
+            "holdout": true
+        }
+    ],
+    "not_permissions": [
+        {
+            "fact": "The user prefers answers in French."
+        },
+        {
+            "fact": "The user prefers short answers."
+        },
+        {
+            "fact": "The team deploys only on Thursdays."
+        },
+        {
+            "fact": "Refunds above 500 francs need a manager approval."
+        },
+        {
+            "fact": "Customer 42 pays invoices late."
+        },
+        {
+            "fact": "The user wants weekly reports as PDF."
+        },
+        {
+            "fact": "Ada approves all refunds above 500 francs herself."
+        },
+        {
+            "fact": "The user wants to be asked before any payment is made."
+        },
+        {
+            "fact": "Invoices are approved by the finance team every Friday."
+        },
+        {
+            "fact": "The user likes being consulted before big changes to the roadmap."
+        },
+        {
+            "fact": "The bot answers support tickets in German for Swiss customers.",
+            "holdout": true
+        },
+        {
+            "fact": "Marc said the AI should always cite its sources.",
+            "holdout": true
+        },
+        {
+            "fact": "The agent closed 40 support tickets last week.",
+            "holdout": true
+        },
+        {
+            "fact": "Licences renew automatically every January.",
+            "holdout": true
+        },
+        {
+            "fact": "The user must sign off on every customer email.",
+            "holdout": true
+        },
+        {
+            "fact": "The user prefers to approve every refund personally.",
+            "holdout": true
+        },
+        {
+            "fact": "Ada likes the agent to draft replies for her to review.",
+            "holdout": true
+        },
+        {
+            "fact": "The user prefers invoices to be paid by bank transfer.",
+            "holdout": true
+        },
+        {
+            "fact": "The user prefers meetings after 10 am.",
+            "holdout": true
+        },
+        {
+            "fact": "L'utilisateur préfère les réponses en français.",
+            "holdout": true
+        },
+        {
+            "fact": "用户希望付款前先征求他的同意。",
+            "holdout": true
+        }
+    ]
+}

@@ -4,53 +4,31 @@ declare(strict_types=1);
 
 namespace Eznix86\AI\Memory\Tools;
 
-use Eznix86\AI\Memory\Services\MemoryManager;
+use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\Prompt;
+use Eznix86\AI\Memory\Services\MemorySearch;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Database\Eloquent\Collection;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
-/**
- * @property array<string, mixed> $context
- */
 class RecallMemory implements Tool
 {
     /**
-     * @param  array<string, mixed>  $context
+     * Create a new tool instance.
      */
     public function __construct(
-        protected array $context = [],
-        protected ?int $limit = null,
+        protected MemoryContext $context,
     ) {}
-
-    /**
-     * Set the context for memory operations.
-     *
-     * @param  array<string, mixed>  $context
-     */
-    public function context(array $context): self
-    {
-        $this->context = $context;
-
-        return $this;
-    }
-
-    /**
-     * Set the maximum number of memories to recall.
-     */
-    public function limit(int $limit): self
-    {
-        $this->limit = $limit;
-
-        return $this;
-    }
 
     /**
      * Get the description of the tool's purpose.
      */
     public function description(): Stringable|string
     {
-        return 'Recall relevant memories from previous conversations using semantic search. Use this to retrieve context about user preferences, past interactions, or stored knowledge.';
+        return Prompt::render('prompts.memory.tools.recall-memory');
     }
 
     /**
@@ -58,21 +36,25 @@ class RecallMemory implements Tool
      */
     public function handle(Request $request): Stringable|string
     {
-        $limit = $this->limit ?? config('memory.recall_limit', 10);
-
-        $memoryManager = app(MemoryManager::class);
-
-        $memories = $memoryManager->recall(
-            $request['query'],
-            $this->context,
-            $limit,
-        );
+        $memories = $this->search((string) $request['query'], (bool) ($request['include_archived'] ?? false));
 
         if ($memories->isEmpty()) {
-            return 'No relevant memories found.';
+            return __('memory::tools.nothing_found');
         }
 
-        return $memories->map(fn ($memory): string => "- {$memory->content}")->implode("\n");
+        AgentMemory::query()->whereKey($memories->modelKeys())->toBase()->increment('recall_count', 1, ['last_used_at' => now()]);
+
+        return Prompt::render('prompts.memory.tools.recall-memory-results', ['memories' => $memories]);
+    }
+
+    /**
+     * Find the memories most relevant to the query.
+     *
+     * @return Collection<int, AgentMemory>
+     */
+    public function search(string $query, bool $includeArchived = false): Collection
+    {
+        return app(MemorySearch::class)->rank($this->context, $query, config('memory.recall_limit'), $includeArchived);
     }
 
     /**
@@ -84,8 +66,10 @@ class RecallMemory implements Tool
     {
         return [
             'query' => $schema->string()
-                ->description('The search query to find relevant memories.')
+                ->description(__('memory::schema.query'))
                 ->required(),
+            'include_archived' => $schema->boolean()
+                ->description(__('memory::schema.include_archived')),
         ];
     }
 }

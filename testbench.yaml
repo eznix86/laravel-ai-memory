@@ -1,0 +1,3 @@
+providers:
+  - Laravel\Ai\AiServiceProvider
+  - Eznix86\AI\Memory\MemoryServiceProvider

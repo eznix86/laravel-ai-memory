@@ -1,0 +1,1 @@
+It describes a preference about style, language, format, channel or timing, something another system does automatically, a rule people follow, something that already happened, or a requirement to ask a person first. It lets the assistant do nothing on its own.

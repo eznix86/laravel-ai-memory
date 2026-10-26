@@ -2,6 +2,16 @@
 
 declare(strict_types=1);
 
+use Dotenv\Dotenv;
+use Eznix86\AI\Memory\Enums\MemoryKind;
+use Eznix86\AI\Memory\Facades\Memories;
+use Eznix86\AI\Memory\MemoryContext;
+use Eznix86\AI\Memory\Models\AgentMemory;
+use Eznix86\AI\Memory\Services\MemoryWriter;
+use Illuminate\Support\Arr;
+use Tests\Evals\EvalTestCase;
+use Tests\Fixtures\User;
+use Tests\Fixtures\Workspace;
 use Tests\TestCase;
 
 /*
@@ -15,9 +25,17 @@ use Tests\TestCase;
 |
 */
 
+Dotenv::createUnsafeImmutable(dirname(__DIR__))->safeLoad();
+
 pest()->extend(TestCase::class)
- // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->beforeEach(fn () => Memories::fake())
     ->in('Feature');
+
+pest()->extend(EvalTestCase::class)
+    ->group('evals')
+    ->in('Evals');
+
+pest()->evals()->judgeUsingLaravelAiClassifier();
 
 /*
 |--------------------------------------------------------------------------
@@ -43,15 +61,46 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 |
 */
 
-/**
- * Helper to create a deterministic embedding vector.
- * Returns a normalized vector with a base value, making all vectors
- * from the same base highly similar (cosine similarity ≈ 1.0).
- */
-function makeEmbedding(float $base = 0.1, int $dimensions = 1536): array
+function workspace(string $name = 'Acme'): Workspace
 {
-    $vector = array_fill(0, $dimensions, $base);
-    $magnitude = sqrt(array_sum(array_map(fn (float $v): float => $v * $v, $vector)));
+    return Workspace::create(['name' => $name]);
+}
 
-    return array_map(fn (float $v): float => $v / $magnitude, $vector);
+function user(string $name = 'Ada'): User
+{
+    return User::create(['name' => $name]);
+}
+
+/**
+ * @param  array<string, mixed>  $attributes
+ */
+function memory(MemoryContext $context, string $content, MemoryKind $kind = MemoryKind::Lesson, array $attributes = []): AgentMemory
+{
+    $memory = app(MemoryWriter::class)->write($context, ['kind' => $kind, 'content' => $content, 'source' => 'test'])->memory;
+
+    if ($attributes !== []) {
+        $memory->forceFill($attributes)->saveQuietly();
+    }
+
+    return $memory;
+}
+
+/**
+ * Store a memory without the writer, so a test starts from exactly these rows whatever the duplicate decider would say.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function seed(MemoryContext $context, string $content, MemoryKind $kind = MemoryKind::Lesson, array $attributes = []): AgentMemory
+{
+    $memory = new AgentMemory(['kind' => $kind, 'content' => $content, 'source' => 'test', 'subject' => $attributes['subject'] ?? null]);
+    $memory->owner()->associate($context->owner);
+
+    if ($kind->isPersonal()) {
+        $memory->user()->associate($context->user);
+    }
+
+    $memory->save();
+    $memory->forceFill(Arr::except($attributes, 'subject'))->saveQuietly();
+
+    return $memory;
 }
