@@ -121,9 +121,9 @@ class MemoryWriter
      */
     protected function add(MemoryContext $context, AgentMemory $memory): MemoryWrite
     {
-        $live = AgentMemory::query()->forContext($context)->live();
+        $active = AgentMemory::query()->forContext($context)->live();
 
-        $excess = $live->count() - config('memory.max_live') + 1;
+        $excess = $active->count() - config('memory.max_active_per_context') + 1;
 
         if ($excess > 0) {
             AgentMemory::query()->forContext($context)->live()->whereNull('creator_id')->weakestFirst()->limit($excess)->get()

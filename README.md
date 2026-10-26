@@ -232,7 +232,7 @@ Before a fact is stored, the writer looks for up to 5 live memories with the sam
 
 You can also bind your own `Eznix86\AI\Memory\Contracts\DecidesDuplicates`.
 
-When a context holds 500 live memories, the weakest ones are archived before a new one is added. Memories a person wrote or confirmed are never archived this way.
+When a context holds 500 active memories, the weakest ones are archived before a new one is added. A context counts the shared memories of its owner and the personal memories of its user, so shared memories count for every user. Memories a person wrote or confirmed are never archived this way.
 
 ## Decay and consolidation
 
@@ -382,7 +382,7 @@ Every option is documented in `config/memory.php`. The ones you are most likely 
 | `AI_MEMORY_QUEUE` | default queue | Queue of the extraction and consolidation jobs |
 | `AI_MEMORY_LOADED_LIMIT` | `30` | Memories added to the instructions |
 | `AI_MEMORY_RELEVANT_LIMIT` | `8` | Of those, memories chosen because they match the last user messages |
-| `AI_MEMORY_MAX_LIVE` | `500` | Live memories per context before the weakest are archived |
+| `AI_MEMORY_MAX_ACTIVE_PER_CONTEXT` | `500` | Active memories per context before the weakest are archived |
 
 ## Testing your application
 

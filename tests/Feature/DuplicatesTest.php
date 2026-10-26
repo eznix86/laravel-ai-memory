@@ -112,7 +112,7 @@ test('the classification decider can find a fact already known', function (): vo
 });
 
 test('a full context archives its weakest memories before adding, but keeps the confirmed ones', function (): void {
-    config(['memory.max_live' => 3]);
+    config(['memory.max_active_per_context' => 3]);
     $context = new MemoryContext(owner: workspace());
     $confirmer = user();
 

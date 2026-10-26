@@ -53,6 +53,31 @@ test('empty provider and model settings fall back to the application defaults', 
     }
 });
 
+test('the old max live setting still sets the maximum of active memories', function (): void {
+    $keys = ['AI_MEMORY_MAX_ACTIVE_PER_CONTEXT', 'AI_MEMORY_MAX_LIVE'];
+    $saved = [$_ENV, $_SERVER, array_map(getenv(...), $keys)];
+
+    foreach ($keys as $key) {
+        unset($_ENV[$key], $_SERVER[$key]);
+        putenv($key);
+    }
+
+    $_ENV['AI_MEMORY_MAX_LIVE'] = $_SERVER['AI_MEMORY_MAX_LIVE'] = '42';
+    putenv('AI_MEMORY_MAX_LIVE=42');
+
+    try {
+        $config = require __DIR__.'/../../config/memory.php';
+
+        expect($config['max_active_per_context'])->toBe(42);
+    } finally {
+        [$_ENV, $_SERVER] = $saved;
+
+        foreach ($keys as $index => $key) {
+            putenv($saved[2][$index] === false ? $key : "{$key}={$saved[2][$index]}");
+        }
+    }
+});
+
 test('the memory agents send the options configured for their provider only', function (): void {
     config(['memory.provider_options' => ['openrouter' => ['provider' => ['only' => ['modelrun/fp4']]]]]);
 

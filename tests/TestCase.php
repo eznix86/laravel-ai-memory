@@ -43,7 +43,7 @@ abstract class TestCase extends BaseTestCase
         'extraction' => true,
         'queue' => null,
         'duplicate_similarity' => 0.70,
-        'max_live' => 500,
+        'max_active_per_context' => 500,
         'consolidation_threshold' => 6,
         'archive_below' => 0.05,
     ];

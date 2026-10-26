@@ -226,15 +226,16 @@ return [
     | A stored memory with a cosine similarity of at least the duplicate
     | similarity may say the same thing as a new fact, and the writer then
     | asks the duplicate decider. Below it, the fact is added without asking.
-    | When a context holds more live memories than the maximum, the weakest
-    | ones are archived before a new one is added. Memories written or
-    | confirmed by a person are never archived this way.
+    | When a context holds more active memories than the maximum, the weakest
+    | ones are archived before a new one is added. A context counts the shared
+    | memories of its owner and the personal ones of its user. Memories
+    | written or confirmed by a person are never archived this way.
     |
     */
 
     'duplicate_similarity' => (float) env('AI_MEMORY_DUPLICATE_SIMILARITY', 0.70),
 
-    'max_live' => (int) env('AI_MEMORY_MAX_LIVE', 500),
+    'max_active_per_context' => (int) env('AI_MEMORY_MAX_ACTIVE_PER_CONTEXT', env('AI_MEMORY_MAX_LIVE', 500)),
 
     /*
     |--------------------------------------------------------------------------
