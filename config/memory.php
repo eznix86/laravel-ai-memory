@@ -232,7 +232,7 @@ return [
     |
     */
 
-    'duplicate_similarity' => (float) env('AI_MEMORY_DUPLICATE_SIMILARITY', 0.75),
+    'duplicate_similarity' => (float) env('AI_MEMORY_DUPLICATE_SIMILARITY', 0.70),
 
     'max_live' => (int) env('AI_MEMORY_MAX_LIVE', 500),
 

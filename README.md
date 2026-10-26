@@ -217,7 +217,7 @@ The guard catches most permissions, not all. Keep real actions, such as payments
 
 ## Duplicates and corrections
 
-Before a fact is stored, the writer looks for up to 5 live memories with the same owner and subject, and a cosine similarity of 0.75 or more. If it finds some, it asks a decider:
+Before a fact is stored, the writer looks for up to 5 live memories with the same owner and subject, and a cosine similarity of 0.70 or more. If it finds some, it asks a decider:
 
 | Decision | Effect |
 |---|---|

@@ -42,7 +42,7 @@ abstract class TestCase extends BaseTestCase
         'permission_guard' => 'none',
         'extraction' => true,
         'queue' => null,
-        'duplicate_similarity' => 0.75,
+        'duplicate_similarity' => 0.70,
         'max_live' => 500,
         'consolidation_threshold' => 6,
         'archive_below' => 0.05,
