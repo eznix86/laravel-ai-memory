@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eznix86\AI\Memory;
 
 use Eznix86\AI\Memory\Console\ConsolidateCommand;
+use Eznix86\AI\Memory\Console\ImportV1Command;
 use Eznix86\AI\Memory\Contracts\DecidesDuplicates;
 use Eznix86\AI\Memory\Contracts\GuardsPermissions;
 use Eznix86\AI\Memory\Deciders\AgentDecider;
@@ -66,7 +67,7 @@ class MemoryServiceProvider extends ServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([ConsolidateCommand::class]);
+            $this->commands([ConsolidateCommand::class, ImportV1Command::class]);
 
             $this->publishes([
                 __DIR__.'/../config/memory.php' => config_path('memory.php'),
