@@ -104,13 +104,15 @@ $context = new MemoryContext(user: $request->user());
 (new SupportAgent($context))->prompt($request->input('message'));
 ```
 
-The context tells which memories the agent reads and writes. With only a user, the memories are private to that user. Add `owner: $team` to share them with a team. Read [The memory context](docs/memory-context.md) before you go to production. It explains owners, users and the kinds of memory.
+Each user gets their own memories. To share memories with a team, add `owner: $team`. See [The memory context](docs/memory-context.md).
 
-**6. Schedule the weekly clean-up** in `routes/console.php`:
+**6. Schedule the weekly clean-up** in `routes/console.php`. It merges memories on the same subject and archives the ones that faded:
 
 ```php
-Schedule::command('memory:consolidate')->weeklyOn(0, '03:00');
+Schedule::command('memory:consolidate')->sundays()->at('02:00');
 ```
+
+See [Decay and consolidation](docs/safety.md#decay-and-consolidation).
 
 ## Injecting memory
 
