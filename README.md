@@ -8,6 +8,7 @@ Memory is for facts nobody can look up. Invoices, records and statuses belong in
 
 - [Requirements](#requirements)
 - [Add it to your project](#add-it-to-your-project)
+- [The memory context](docs/memory-context.md)
 - [Testing](#testing)
 - [Documentation](#documentation)
 - [Migrating from 1.x to 2.x](docs/upgrading.md)
@@ -86,6 +87,8 @@ $context = new MemoryContext(user: $request->user());
 
 (new SupportAgent($context))->prompt($request->input('message'));
 ```
+
+The context decides whose memories the agent reads and writes. With a user only, they stay private to that user. Add `owner: $team` to share them with a team. Read [The memory context](docs/memory-context.md) before you go live: it explains owners, users and the kinds of memory.
 
 **6. Schedule the weekly clean-up** in `routes/console.php`:
 
