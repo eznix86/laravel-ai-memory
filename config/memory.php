@@ -242,7 +242,7 @@ return [
     | Consolidation
     |--------------------------------------------------------------------------
     |
-    | The memory:consolidate command merges the live memories of one subject
+    | The memory:consolidate command merges the active memories of one subject
     | and owner into one note when there are at least as many as the
     | threshold. It then archives the memories whose decayed strength falls
     | below the archive strength, from 0.0 (never) to 1.0. Memories written

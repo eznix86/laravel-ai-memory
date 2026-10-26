@@ -23,7 +23,7 @@ class MemoryManager
     ) {}
 
     /**
-     * List the live memories in the given context.
+     * List the active memories in the given context.
      *
      * @return Collection<int, AgentMemory>
      */
@@ -31,7 +31,7 @@ class MemoryManager
     {
         return AgentMemory::query()
             ->forContext($context)
-            ->live()
+            ->active()
             ->when($kind, fn (Builder $query) => $query->where('kind', $kind))
             ->when($subject, fn (Builder $query) => $query->where('subject', $subject))
             ->when($search, fn (Builder $query) => $query->whereLike('content', "%{$search}%"))

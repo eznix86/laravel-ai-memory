@@ -77,7 +77,7 @@ test('the guard also checks a merged note', function (): void {
 
     ConsolidateMemories::dispatchSync($workspace);
 
-    expect(AgentMemory::live()->count())->toBe(6);
+    expect(AgentMemory::active()->count())->toBe(6);
 });
 
 test('the permission question can be overridden in the application views', function (): void {

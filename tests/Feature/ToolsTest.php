@@ -47,7 +47,7 @@ test('Forget archives the memory and keeps the row', function (): void {
 
     expect($result)->toBe("Forgot #{$memory->id}.")
         ->and($memory->fresh()->archived_at)->not->toBeNull()
-        ->and(AgentMemory::forContext($context)->live()->count())->toBe(0);
+        ->and(AgentMemory::forContext($context)->active()->count())->toBe(0);
 });
 
 test('Forget cannot reach a memory outside the context', function (): void {
@@ -61,7 +61,7 @@ test('Forget cannot reach a memory outside the context', function (): void {
         ->and(AgentMemory::whereNotNull('archived_at')->count())->toBe(0);
 });
 
-test('RecallMemory returns live memories in the context and marks them as used', function (): void {
+test('RecallMemory returns active memories in the context and marks them as used', function (): void {
     $this->freezeSecond();
     $context = new MemoryContext(owner: workspace());
     $memory = memory($context, 'The user lives in Mauritius.');

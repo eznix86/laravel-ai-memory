@@ -197,7 +197,7 @@ class AgentMemory extends Model
      * @param  Builder<AgentMemory>  $query
      */
     #[Scope]
-    protected function live(Builder $query): void
+    protected function active(Builder $query): void
     {
         $query->whereNull('superseded_by')
             ->whereNull('archived_at')

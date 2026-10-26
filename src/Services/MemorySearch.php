@@ -87,7 +87,7 @@ class MemorySearch
         $query = AgentMemory::query()->forContext($context)->whereKeyNot($except);
 
         if (! $includeArchived) {
-            return $query->live();
+            return $query->active();
         }
 
         return $query

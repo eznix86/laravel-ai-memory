@@ -100,7 +100,7 @@ class MemoryWriter
     }
 
     /**
-     * Find the live memories that may say the same thing as the new one.
+     * Find the active memories that may say the same thing as the new one.
      *
      * @return Collection<int, AgentMemory>
      */
@@ -108,7 +108,7 @@ class MemoryWriter
     {
         return AgentMemory::query()
             ->forContext($context)
-            ->live()
+            ->active()
             ->when($memory->user, fn (Builder $query, Model $user) => $query->whereBelongsToUser($user), fn (Builder $query) => $query->whereNull('user_id'))
             ->when($memory->subject, fn (Builder $query, string $subject) => $query->where('subject', $subject))
             ->whereVectorSimilarTo('embedding', $memory->embedding ?? [], config('memory.duplicate_similarity'))
@@ -121,12 +121,12 @@ class MemoryWriter
      */
     protected function add(MemoryContext $context, AgentMemory $memory): MemoryWrite
     {
-        $active = AgentMemory::query()->forContext($context)->live();
+        $active = AgentMemory::query()->forContext($context)->active();
 
         $excess = $active->count() - config('memory.max_active_per_context') + 1;
 
         if ($excess > 0) {
-            AgentMemory::query()->forContext($context)->live()->whereNull('creator_id')->weakestFirst()->limit($excess)->get()
+            AgentMemory::query()->forContext($context)->active()->whereNull('creator_id')->weakestFirst()->limit($excess)->get()
                 ->each(fn (AgentMemory $weak) => $weak->update(['archived_at' => now()]));
         }
 

@@ -65,7 +65,7 @@ class WithMemory
     {
         $limit = $this->limit ?? config('memory.loaded_limit');
 
-        $preferences = $this->live()->whereIn('kind', MemoryKind::personal())->when(
+        $preferences = $this->active()->whereIn('kind', MemoryKind::personal())->when(
             $this->context->user,
             fn (Builder $query, Model $user) => $query->whereBelongsToUser($user),
             fn (Builder $query) => $query->whereRaw('false'),
@@ -77,7 +77,7 @@ class WithMemory
 
         $chosen = $preferences->merge($relevant);
 
-        $strongest = $this->live()->whereKeyNot($chosen)->strongestFirst()->limit($limit - $chosen->count())->pluck('id');
+        $strongest = $this->active()->whereKeyNot($chosen)->strongestFirst()->limit($limit - $chosen->count())->pluck('id');
 
         $memories = AgentMemory::query()->whereKey($chosen->merge($strongest))->strongestFirst()->get();
 
@@ -101,13 +101,13 @@ class WithMemory
     }
 
     /**
-     * Start a query for the live memories in the context.
+     * Start a query for the active memories in the context.
      *
      * @return Builder<AgentMemory>
      */
-    protected function live(): Builder
+    protected function active(): Builder
     {
-        return AgentMemory::query()->forContext($this->context)->live();
+        return AgentMemory::query()->forContext($this->context)->active();
     }
 
     /**

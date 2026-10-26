@@ -61,7 +61,7 @@ test('a context without a user sees only owner-wide memories', function (): void
     expect(AgentMemory::forContext(new MemoryContext(owner: $workspace))->pluck('content')->all())->toBe(['Shared.']);
 });
 
-test('live excludes expired, archived and superseded memories', function (): void {
+test('active excludes expired, archived and superseded memories', function (): void {
     $context = new MemoryContext(owner: workspace());
 
     $kept = memory($context, 'Still true.', attributes: ['expires_at' => now()->addDay()]);
@@ -69,7 +69,7 @@ test('live excludes expired, archived and superseded memories', function (): voi
     memory($context, 'Archived.', attributes: ['archived_at' => now()]);
     memory($context, 'Superseded.', attributes: ['superseded_by' => $kept->id]);
 
-    expect(AgentMemory::forContext($context)->live()->pluck('content')->all())->toBe(['Still true.']);
+    expect(AgentMemory::forContext($context)->active()->pluck('content')->all())->toBe(['Still true.']);
 });
 
 test('without an owner, the user owns the memories and they stay private', function (): void {

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 
-test('list returns live memories in the context, filtered by kind, subject and text', function (): void {
+test('list returns active memories in the context, filtered by kind, subject and text', function (): void {
     $context = new MemoryContext(user: user(), owner: workspace());
 
     memory($context, 'Customer 42 pays late.', MemoryKind::CustomerNote, ['subject' => 'customer:42']);
@@ -76,18 +76,18 @@ test('export holds every memory of the user and nothing else', function (): void
     $ada = user('Ada');
     $context = new MemoryContext(user: $ada, owner: $workspace);
 
-    $live = memory($context, 'Ada prefers tea.', MemoryKind::Preference);
+    $active = memory($context, 'Ada prefers tea.', MemoryKind::Preference);
     $archived = memory($context, 'Ada prefers coffee.', MemoryKind::Preference, ['archived_at' => now()]);
     memory($context, 'Shared lesson.');
     memory(new MemoryContext(user: user('Bob'), owner: $workspace), 'Bob prefers water.', MemoryKind::Preference);
 
     $export = Memories::export($ada);
 
-    expect(Arr::pluck($export, 'id'))->toBe([$live->id, $archived->id])
+    expect(Arr::pluck($export, 'id'))->toBe([$active->id, $archived->id])
         ->and($export[0])->not->toHaveKey('embedding');
 });
 
-test('privacy purge removes live, archived and superseded rows for the subject only', function (): void {
+test('privacy purge removes active, archived and superseded rows for the subject only', function (): void {
     $workspace = workspace();
     $context = new MemoryContext(owner: $workspace);
 

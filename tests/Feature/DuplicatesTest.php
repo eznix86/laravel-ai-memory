@@ -125,7 +125,7 @@ test('a full context archives its weakest memories before adding, but keeps the 
     expect($weak->fresh()->archived_at)->not->toBeNull()
         ->and($confirmed->fresh()->archived_at)->toBeNull()
         ->and($strong->fresh()->archived_at)->toBeNull()
-        ->and(AgentMemory::forContext($context)->live()->count())->toBe(3);
+        ->and(AgentMemory::forContext($context)->active()->count())->toBe(3);
 });
 
 test('free-form subjects from the model are dropped, so the same fact still meets its duplicate', function (): void {

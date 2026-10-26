@@ -26,7 +26,7 @@ test('six memories on one subject are merged into one, and the originals are sup
 
     ConsolidateMemories::dispatchSync($workspace);
 
-    $merged = AgentMemory::live()->sole();
+    $merged = AgentMemory::active()->sole();
 
     expect($merged)
         ->content->toBe('Customer 42 pays late and prefers email.')
@@ -46,7 +46,7 @@ test('five memories on one subject are left alone', function (): void {
     ConsolidateMemories::dispatchSync($workspace);
 
     MemoryConsolidator::assertNeverPrompted();
-    expect(AgentMemory::live()->count())->toBe(5);
+    expect(AgentMemory::active()->count())->toBe(5);
 });
 
 test('personal and shared memories on the same subject are merged apart', function (): void {
@@ -68,7 +68,7 @@ test('a merge the writer rejects changes nothing and logs why', function (): voi
 
     ConsolidateMemories::dispatchSync($workspace);
 
-    expect(AgentMemory::live()->count())->toBe(6);
+    expect(AgentMemory::active()->count())->toBe(6);
     Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message, array $context): bool => $context['subject'] === 'customer:42'
         && Str::contains($context['reason'], 'card number')
         && $context['note'] === 'Pay with card 4111 1111 1111 1111.');
@@ -100,7 +100,7 @@ test('consolidation stays inside the owner', function (): void {
 
     MemoryConsolidator::assertNeverPrompted();
     expect($faded->fresh()->archived_at)->not->toBeNull()
-        ->and(AgentMemory::forOwner($acme)->live()->count())->toBe(6);
+        ->and(AgentMemory::forOwner($acme)->active()->count())->toBe(6);
 });
 
 test('the command queues one consolidation per owner', function (): void {

@@ -44,7 +44,7 @@ class ConsolidateMemories implements ShouldQueue
     {
         AgentMemory::query()
             ->forOwner($this->owner)
-            ->live()
+            ->active()
             ->whereNotNull('subject')
             ->select(['subject', 'user_type', 'user_id'])
             ->groupBy(['subject', 'user_type', 'user_id'])
@@ -54,7 +54,7 @@ class ConsolidateMemories implements ShouldQueue
 
         AgentMemory::query()
             ->forOwner($this->owner)
-            ->live()
+            ->active()
             ->whereNull('creator_id')
             ->weakerThan(config('memory.archive_below'))
             ->toBase()
@@ -62,7 +62,7 @@ class ConsolidateMemories implements ShouldQueue
     }
 
     /**
-     * Get the live memories that share the subject and the owner of the group.
+     * Get the active memories that share the subject and the owner of the group.
      *
      * @return Collection<int, AgentMemory>
      */
@@ -70,7 +70,7 @@ class ConsolidateMemories implements ShouldQueue
     {
         return AgentMemory::query()
             ->forOwner($this->owner)
-            ->live()
+            ->active()
             ->where('subject', $group->subject)
             ->where('user_type', $group->user_type)
             ->where('user_id', $group->user_id)

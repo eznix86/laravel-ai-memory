@@ -100,11 +100,11 @@ abstract class EvalTestCase extends TestCase
      */
     protected function memoriesOf(MemoryContext $context): Collection
     {
-        return AgentMemory::forContext($context)->live()->pluck('content');
+        return AgentMemory::forContext($context)->active()->pluck('content');
     }
 
     /**
-     * The live memories as one lowercased text, for keyword checks.
+     * The active memories as one lowercased text, for keyword checks.
      */
     protected function rememberedText(MemoryContext $context): string
     {
