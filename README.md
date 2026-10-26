@@ -22,6 +22,8 @@ The agent keeps what users tell it about themselves and their work: who they are
 - PostgreSQL with [pgvector](https://github.com/pgvector/pgvector). The migration adds the extension, so the database user must have that permission
 - A queue worker
 
+The package needs two models from `config/ai.php`: a text model with structured output for the memory agents, and an embedding model for the vectors. A classification model is optional, for the classification decider and guard. See [Models](docs/customizing.md#models).
+
 ## Add it to your project
 
 **1. Install and migrate.** If you use Ollama, set `AI_MEMORY_DIMENSIONS` first.
