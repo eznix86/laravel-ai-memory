@@ -9,8 +9,7 @@
 
 | What | Where | Default | Why |
 |---|---|---|---|
-| Keyword search | `AI_MEMORY_FULLTEXT_LANGUAGE` | `english` | A PostgreSQL text search configuration, such as `french`. Use `simple` for users who write in many languages. Set it **before** `php artisan migrate`, because the migration makes the full-text index with it. PostgreSQL does not split Chinese, Japanese or Korean into words. For these languages, recall uses the meaning search, or an extension such as zhparser |
-| Meaning search | `AI_MEMORY_EMBEDDINGS_PROVIDER`, `AI_MEMORY_EMBEDDINGS_MODEL` | `config/ai.php` | Use a multilingual embedding model if your users do not write in English |
+| Search | `AI_MEMORY_EMBEDDINGS_PROVIDER`, `AI_MEMORY_EMBEDDINGS_MODEL` | `config/ai.php` | Recall ranks memories by meaning. Use a multilingual embedding model if your users do not write in English |
 | Rejected instructions and passwords | `instruction_patterns`, `password_patterns` in `config/memory.php` | English | Regular expressions. Add patterns for your languages, or use the [permission guard](safety.md#permission-guard), which works in all languages |
 | Messages | lang files | English | See [Translating the messages](#translating-the-messages) |
 

@@ -61,7 +61,7 @@ The writer rejects other subjects, and the tools remove them. A label that a mod
 |---|---|
 | `Remember` | Stores one fact: a kind, a text of 300 characters or less, an optional subject, and an importance from 0 to 1. It tells the agent if the fact is rejected, already known, or replaces a memory |
 | `Forget` | Archives a memory by its id. A person can restore it |
-| `RecallMemory` | Finds the memories that are not loaded. It ranks them by keyword (PostgreSQL full text, any word of the query) and by meaning (pgvector), then joins the two rankings. Strength decides only between equal matches. It finds archived memories only when the agent asks for them |
+| `RecallMemory` | Finds the memories that are not loaded. It ranks them by meaning (pgvector). Strength decides only between equal matches. It finds archived memories only when the agent asks for them |
 | `WithMemory` | Adds memories to the instructions once per prompt, and keeps them after tool calls. First it adds the user's preferences. Then it adds the 8 memories that match the last 3 user messages best. Then it adds the strongest memories, up to 30 in total. So it loads an old note about a customer that the user names, also when the note is weak |
 | `MemorySkill` | Guidance that the agent loads with the SDK's `LoadSkill` tool: which facts to keep, which kind to use, and how to correct a fact |
 

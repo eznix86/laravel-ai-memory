@@ -140,12 +140,7 @@ The memory ends at `expires_at`. Add `creator: $admin` when a person writes it. 
 
 ## Languages
 
-Facts stay in the language of the user. For other languages, set the keyword search before you migrate, and translate the short messages that the agent reads:
-
-```bash
-# .env, before php artisan migrate
-AI_MEMORY_FULLTEXT_LANGUAGE=simple
-```
+Facts stay in the language of the user. For other languages, use a multilingual embedding model, and translate the short messages that the agent reads:
 
 ```bash
 php artisan vendor:publish --tag=memory-lang

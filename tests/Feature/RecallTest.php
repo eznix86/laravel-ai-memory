@@ -13,22 +13,14 @@ function recall(MemoryContext $context, string $query, bool $includeArchived = f
     return (string) (new RecallMemory($context))->handle(new Request(['query' => $query, 'include_archived' => $includeArchived]));
 }
 
-test('a keyword match is found even when the meaning search misses it', function (): void {
-    config(['memory.recall_min_similarity' => 0.99]);
-    $context = new MemoryContext(owner: workspace());
-    $memory = memory($context, 'Invoices for Globex are sent by courier.');
-
-    expect(recall($context, 'courier'))->toBe("#{$memory->id} [lesson] Invoices for Globex are sent by courier.");
-});
-
-test('a meaning match is found even without a shared keyword stem', function (): void {
+test('a memory is found by the meaning of its kind and content', function (): void {
     $context = new MemoryContext(owner: workspace());
     $memory = memory($context, 'Deploys happen weekly.');
 
     expect(recall($context, 'lesson'))->toContain("#{$memory->id}");
 });
 
-test('a memory found by both searches ranks above one found by one', function (): void {
+test('the memory closest in meaning ranks first', function (): void {
     $context = new MemoryContext(owner: workspace());
     $one = memory($context, 'Payments are late.');
     $both = memory($context, 'Payments from Globex are late.');
@@ -59,28 +51,7 @@ test('archived memories are searched only when asked', function (): void {
         ->and(recall($context, 'Globex cheque', includeArchived: true))->toBe("#{$archived->id} [lesson] (archived) Globex used to pay by cheque.");
 });
 
-test('the keyword search stems words in the configured language', function (): void {
-    config(['memory.fulltext_language' => 'french', 'memory.recall_min_similarity' => 0.99]);
-    $context = new MemoryContext(owner: workspace());
-    $memory = memory($context, 'Le client préfère les appels.');
-
-    $found = (new RecallMemory($context))->search('préférés');
-
-    expect($found->pluck('id')->all())->toBe([$memory->id]);
-});
-
-test('the keyword search misses another language stems', function (): void {
-    config(['memory.fulltext_language' => 'english', 'memory.recall_min_similarity' => 0.99]);
-    $context = new MemoryContext(owner: workspace());
-    memory($context, 'Le client préfère les appels.');
-
-    $found = (new RecallMemory($context))->search('préférés');
-
-    expect($found)->toBeEmpty();
-});
-
 test('a long question finds a memory that shares only some of its words', function (): void {
-    config(['memory.recall_min_similarity' => 0.99]);
     $context = new MemoryContext(owner: workspace());
     $memory = memory($context, 'Invoices for Globex are sent by courier.');
 
@@ -89,7 +60,7 @@ test('a long question finds a memory that shares only some of its words', functi
     expect($found->pluck('id')->all())->toBe([$memory->id]);
 });
 
-test('relevance ranks first, and strength only breaks ties', function (): void {
+test('meaning ranks first, and strength only breaks ties', function (): void {
     $context = new MemoryContext(owner: workspace());
     $exact = memory($context, 'Customer 42 wants invoices in German.', MemoryKind::CustomerNote, ['importance' => 0.05, 'created_at' => now()->subDays(200)]);
     $partial = memory($context, 'Customer 7 wants invoices in French.', MemoryKind::CustomerNote, ['importance' => 1]);
@@ -97,4 +68,12 @@ test('relevance ranks first, and strength only breaks ties', function (): void {
     $found = (new RecallMemory($context))->search('Which language for the invoices of customer 42, German?');
 
     expect($found->pluck('id')->all())->toBe([$exact->id, $partial->id]);
+});
+
+test('a memory below the minimum similarity is not found', function (): void {
+    config(['memory.recall_min_similarity' => 0.5]);
+    $context = new MemoryContext(owner: workspace());
+    memory($context, 'Invoices for Globex are sent by courier.');
+
+    expect(recall($context, 'When are Globex payments due?'))->toBe('No relevant memories found.');
 });
