@@ -66,7 +66,6 @@ $this->app->bind(MemoryExtractor::class, TeamExtractor::class);
 | `AI_MEMORY_DECIDER` | `agent` | `agent` or `classification` |
 | `AI_MEMORY_PERMISSION_GUARD` | `none` | `none`, `agent` or `classification` |
 | `AI_MEMORY_CLASSIFICATION_PROVIDER`, `AI_MEMORY_CLASSIFICATION_MODEL` | `config/ai.php` defaults | The model of the classification decider and guard |
-| `AI_MEMORY_FULLTEXT_LANGUAGE` | `english` | The PostgreSQL text search configuration |
 | `AI_MEMORY_EXTRACTION` | `true` | Extract facts after each turn |
 | `AI_MEMORY_EXTRACTION_WINDOW` | `4` | The number of messages before the turn that the extractor reads. `0` sends the turn only |
 | `AI_MEMORY_QUEUE` | default queue | The queue of the extraction and consolidation jobs |

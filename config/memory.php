@@ -40,23 +40,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Full-Text Language
-    |--------------------------------------------------------------------------
-    |
-    | This option controls the PostgreSQL text search configuration of the
-    | full-text index on the memory content. It is read when the migration
-    | builds the index. The RecallMemory search ranks by meaning and does
-    | not use this index.
-    |
-    | Supported: any configuration listed by "\dF" in psql, such as
-    |            "english", "french", "german", "spanish", "simple"
-    |
-    */
-
-    'fulltext_language' => env('AI_MEMORY_FULLTEXT_LANGUAGE', 'english'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Loaded Memories
     |--------------------------------------------------------------------------
     |

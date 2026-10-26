@@ -27,7 +27,6 @@ abstract class TestCase extends BaseTestCase
         'embeddings_provider' => null,
         'embeddings_model' => null,
         'dimensions' => null,
-        'fulltext_language' => 'english',
         'loaded_limit' => 30,
         'relevant_limit' => 8,
         'recall_limit' => 8,
