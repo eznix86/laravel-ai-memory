@@ -31,7 +31,7 @@ abstract class TestCase extends BaseTestCase
         'loaded_limit' => 30,
         'relevant_limit' => 8,
         'recall_limit' => 8,
-        'recall_min_similarity' => 0.3,
+        'recall_min_similarity' => 0.0,
         'provider' => null,
         'model' => null,
         'timeout' => 120,

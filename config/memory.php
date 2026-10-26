@@ -43,12 +43,10 @@ return [
     | Full-Text Language
     |--------------------------------------------------------------------------
     |
-    | This option controls the PostgreSQL text search configuration used by
-    | the keyword half of the RecallMemory search. It is read when the
-    | migration builds the index, so a later change needs a new index. Use
-    | "simple" when your users write in several languages. PostgreSQL does
-    | not split Chinese, Japanese or Korean into words: there, recall relies
-    | on the meaning half of the search, or on an extension such as zhparser.
+    | This option controls the PostgreSQL text search configuration of the
+    | full-text index on the memory content. It is read when the migration
+    | builds the index. The RecallMemory search ranks by meaning and does
+    | not use this index.
     |
     | Supported: any configuration listed by "\dF" in psql, such as
     |            "english", "french", "german", "spanish", "simple"
@@ -82,16 +80,16 @@ return [
     |--------------------------------------------------------------------------
     |
     | These options control the RecallMemory tool. The limit is the number of
-    | memories one search returns. The minimum similarity, from 0.0 to 1.0,
-    | is the cosine similarity a memory needs to be found by meaning. Lower
-    | values find more, and some of it may not be relevant. Keyword matches
-    | are found whatever the minimum similarity is.
+    | memories one search returns. The search ranks memories by meaning. The
+    | minimum similarity, from 0.0 to 1.0, is the cosine similarity a memory
+    | needs to be found. Higher values return nothing for an unrelated
+    | question, but also miss some relevant memories.
     |
     */
 
     'recall_limit' => (int) env('AI_MEMORY_RECALL_LIMIT', 8),
 
-    'recall_min_similarity' => (float) env('AI_MEMORY_RECALL_MIN_SIMILARITY', 0.3),
+    'recall_min_similarity' => (float) env('AI_MEMORY_RECALL_MIN_SIMILARITY', 0.0),
 
     /*
     |--------------------------------------------------------------------------
